@@ -12,18 +12,20 @@ gauss_boaga_ovest.ImportFromEPSG(3004)
 
 trasformation = CoordinateTransformation(local_cassini_soldener, gauss_boaga_ovest)
 
-def isole(cxf, oggetto):
+def tabisole(cxf, oggetto):
+    oggetto['TABISOLE'] = []
     for isola in range(int(oggetto['NUMEROISOLE'])):
-        cxf.next().strip()
+        oggetto['TABISOLE'].append(cxf.next().strip())
 
 def vertici(cxf, oggetto):
+    oggetto['VERTICI'] = []
     for vertice in range(int(oggetto['NUMEROVERTICI'])):
-        cxf.next().strip(), cxf.next().strip()
+        oggetto['VERTICI'].append((cxf.next().strip(), cxf.next().strip()))
 
 oggetti_cartografici = {
     'BORDO': (['CODICE IDENTIFICATIVO', 'DIMENSIONE', 'ANGOLO',
         'POSIZIONEX', 'POSIZIONEY', 'PUNTOINTERNOX', 'PUNTOINTERNOY',
-        'NUMEROISOLE', 'NUMEROVERTICI'], [isole, vertici]),
+        'NUMEROISOLE', 'NUMEROVERTICI'], [tabisole, vertici]),
     'TESTO': (['TESTO', 'DIMENSIONE', 'ANGOLO','POSIZIONEX', 'POSIZIONEY'], []),
     'FIDUCIALE': (['NUMERO IDENTIFICATIVO', 'CODICE SIMBOLO', 'POSIZIONEX', 'POSIZIONEY',
         'PUNTORAPPRESENTAZIONEX', 'PUNTORAPPRESENTAZIONEY'], []),
@@ -58,13 +60,17 @@ def do_main(basepath):
     sup = open(basepath + '.SUP')
 
     # parse header
-    mappa = cxf.next().strip()
-    assert mappa in ['MAPPA', 'MAPPA FONDIARIO', 'QUADRO D\'UNIONE']
+    foglio['header'] = {}
+    header = foglio['header']
+    header['MAPPA'] = cxf.next().strip()
+    assert header['MAPPA'] in ['MAPPA', 'MAPPA FONDIARIO', 'QUADRO D\'UNIONE']
 
-    nome_mappa = cxf.next().strip()
-    assert nome_mappa  == basename
+    header['NOME MAPPA'] = cxf.next().strip()
+    assert header['NOME MAPPA'] == basename
     
-    scala_originaria = cxf.next().strip()
+    header['SCALA ORIGINARIA'] = cxf.next().strip()
+
+    foglio['oggetti'] = dict((object_name, []) for object_name in oggetti_cartografici)
 
     for raw_line in cxf:
         line = raw_line.strip().rstrip('\\')
@@ -77,6 +83,8 @@ def do_main(basepath):
 
         for parse_function in parse_functions:
             parse_function(cxf, oggetto)
+
+        foglio['oggetti'][line].append(oggetto)
 
 #        if len(oggetto['CODICE IDENTIFICATIVO']) == 11:
 #            print '*** CONFINE', elemento['CODICE IDENTIFICATIVO']
@@ -99,7 +107,9 @@ def do_main(basepath):
 
     garbage = cxf.readline()
     assert garbage == '', 'Garbage after EOF %r' % garbage
-    
+
+    # print foglio
+
 
 def main():
     do_main('E259_004900')
