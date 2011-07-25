@@ -1,8 +1,9 @@
 
-from os.path import basename as path_basename
+from os import mkdir
+from os.path import join, basename as path_basename
 
 from osgeo.osr import CoordinateTransformation, SpatialReference
-
+from osgeo.ogr import GetDriverByName, wkbPolygon, wkbLinearRing, Feature, Geometry, FieldDefn, OFTString
 
 local_cassini_soldener = SpatialReference()
 # local_cassini_soldener.ImportFromProj4('+proj=cass +lat_0=41.650375 +lon_0=14.259775 +x_0=0.8 +y_0=-1.3 +ellps=intl +units=m +no_defs')
@@ -11,6 +12,35 @@ gauss_boaga_ovest = SpatialReference()
 gauss_boaga_ovest.ImportFromEPSG(3004)
 
 trasformation = CoordinateTransformation(local_cassini_soldener, gauss_boaga_ovest)
+
+
+def foglio_to_shapefiles(foglio, outpath):
+    mkdir(outpath)
+
+    particelle_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'particelle.shp'))
+    particelle = particelle_ds.CreateLayer('particelle', None, wkbPolygon)
+    edifici_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'edifici.shp'))
+    edifici = edifici_ds.CreateLayer('edifici', None, wkbPolygon)
+    edifici_particella = FieldDefn('particella', OFTString)
+    edifici_particella.SetWidth(8)
+    edifici.CreateField(edifici_particella)
+    for bordo in foglio['oggetti']['BORDO']:
+        if bordo['NUMEROISOLE'] == '0':
+            ring = Geometry(wkbLinearRing)
+            for x, y in bordo['VERTICI']:
+                ring.AddPoint(float(x), float(y))
+            poly = Geometry(wkbPolygon)
+            poly.AddGeometry(ring)
+        else:
+            
+        if bordo['CODICE IDENTIFICATIVO'][-1] == '+':
+            feat = Feature(edifici.GetLayerDefn())
+            feat.SetField('particella', bordo['CODICE IDENTIFICATIVO'][:-1])
+            feat.SetGeometry(poly)
+            # import pdb; pdb.set_trace()
+            edifici.CreateFeature(feat)
+            feat.Destroy()
+
 
 def tabisole(cxf, oggetto):
     oggetto['TABISOLE'] = []
@@ -27,9 +57,9 @@ oggetti_cartografici = {
         'POSIZIONEX', 'POSIZIONEY', 'PUNTOINTERNOX', 'PUNTOINTERNOY',
         'NUMEROISOLE', 'NUMEROVERTICI'], [tabisole, vertici]),
     'TESTO': (['TESTO', 'DIMENSIONE', 'ANGOLO','POSIZIONEX', 'POSIZIONEY'], []),
+    'SIMBOLO': (['CODICE SIMBOLO', 'ANGOLO', 'POSIZIONEX', 'POSIZIONEY'], []),
     'FIDUCIALE': (['NUMERO IDENTIFICATIVO', 'CODICE SIMBOLO', 'POSIZIONEX', 'POSIZIONEY',
         'PUNTORAPPRESENTAZIONEX', 'PUNTORAPPRESENTAZIONEY'], []),
-    'SIMBOLO': (['CODICE SIMBOLO', 'ANGOLO', 'POSIZIONEX', 'POSIZIONEY'], []),
     'LINEA': (['CODICE TIPO DI TRATTO', 'NUMEROVERTICI'], [vertici]),
     'EOF': ([], []),
 }
@@ -108,7 +138,7 @@ def do_main(basepath):
     garbage = cxf.readline()
     assert garbage == '', 'Garbage after EOF %r' % garbage
 
-    # print foglio
+    foglio_to_shapefiles(foglio, 'test')
 
 
 def main():
