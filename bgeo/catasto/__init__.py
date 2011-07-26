@@ -19,26 +19,66 @@ def foglio_to_shapefiles(foglio, outpath):
 
     particelle_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'particelle.shp'))
     particelle = particelle_ds.CreateLayer('particelle', None, wkbPolygon)
+    particelle_particella = FieldDefn('particella', OFTString)
+    particelle_particella.SetWidth(8)
+    particelle.CreateField(particelle_particella)
+
     edifici_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'edifici.shp'))
     edifici = edifici_ds.CreateLayer('edifici', None, wkbPolygon)
     edifici_particella = FieldDefn('particella', OFTString)
     edifici_particella.SetWidth(8)
     edifici.CreateField(edifici_particella)
+
+    strade_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'strade.shp'))
+    strade = strade_ds.CreateLayer('strade', None, wkbPolygon)
+
+    acque_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'acque.shp'))
+    acque = acque_ds.CreateLayer('strade', None, wkbPolygon)
+
     for bordo in foglio['oggetti']['BORDO']:
-        if bordo['NUMEROISOLE'] == '0':
+
+        poly = Geometry(wkbPolygon)
+        vertice = 0
+        for isola in range(int(bordo['NUMEROISOLE'])):
             ring = Geometry(wkbLinearRing)
-            for x, y in bordo['VERTICI']:
+            print 'isola', vertice, int(bordo['TABISOLE'][isola])
+            for vertice in range(vertice, vertice + int(bordo['TABISOLE'][isola])):
+                x, y = bordo['VERTICI'][vertice]
                 ring.AddPoint(float(x), float(y))
-            poly = Geometry(wkbPolygon)
+            ring.CloseRings()
             poly.AddGeometry(ring)
-        else:
-            
-        if bordo['CODICE IDENTIFICATIVO'][-1] == '+':
+        ring = Geometry(wkbLinearRing)
+        print 'base', vertice, int(bordo['NUMEROVERTICI'])
+        for vertice in range(vertice, int(bordo['NUMEROVERTICI'])):
+            x, y = bordo['VERTICI'][vertice]
+            ring.AddPoint(float(x), float(y))
+        print 'fine', vertice
+        ring.CloseRings()
+        poly.AddGeometry(ring)
+
+        if len(bordo['CODICE IDENTIFICATIVO']) == 11:
+            print 'Confine! Dropping:', bordo
+        elif bordo['CODICE IDENTIFICATIVO'] == 'STRADA':
+            feat = Feature(strade.GetLayerDefn())
+            feat.SetGeometry(poly)
+            strade.CreateFeature(feat)
+            feat.Destroy()
+        elif bordo['CODICE IDENTIFICATIVO'] == 'ACQUA':
+            feat = Feature(acque.GetLayerDefn())
+            feat.SetGeometry(poly)
+            acque.CreateFeature(feat)
+            feat.Destroy()
+        elif bordo['CODICE IDENTIFICATIVO'][-1] == '+':
             feat = Feature(edifici.GetLayerDefn())
             feat.SetField('particella', bordo['CODICE IDENTIFICATIVO'][:-1])
             feat.SetGeometry(poly)
-            # import pdb; pdb.set_trace()
             edifici.CreateFeature(feat)
+            feat.Destroy()
+        else:
+            feat = Feature(edifici.GetLayerDefn())
+            feat.SetField('particella', bordo['CODICE IDENTIFICATIVO'][:-1])
+            feat.SetGeometry(poly)
+            particelle.CreateFeature(feat)
             feat.Destroy()
 
 
