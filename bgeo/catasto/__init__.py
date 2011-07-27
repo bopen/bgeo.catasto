@@ -4,7 +4,7 @@ from os.path import join, basename as path_basename
 import sys
 
 from osgeo.osr import CoordinateTransformation, SpatialReference
-from osgeo.ogr import GetDriverByName, wkbPolygon, wkbLinearRing, Feature, Geometry, FieldDefn, OFTString
+from osgeo.ogr import GetDriverByName, wkbPoint, wkbPolygon, wkbLinearRing, Feature, Geometry, FieldDefn, OFTString
 
 local_cassini_soldener = SpatialReference()
 # local_cassini_soldener.ImportFromProj4('+proj=cass +lat_0=41.650375 +lon_0=14.259775 +x_0=0.8 +y_0=-1.3 +ellps=intl +units=m +no_defs')
@@ -23,7 +23,7 @@ def foglio_to_shapefiles(foglio, outpath):
     f_codice_comune = FieldDefn('comune', OFTString)
     f_codice_comune.SetWidth(4)
     f_foglio = FieldDefn('foglio', OFTString)
-    f_foglio.SetWidth(6)
+    f_foglio.SetWidth(11)
     f_particella = FieldDefn('part', OFTString)
     f_particella.SetWidth(8)
 
@@ -42,7 +42,12 @@ def foglio_to_shapefiles(foglio, outpath):
     strade = strade_ds.CreateLayer('strade', None, wkbPolygon)
 
     acque_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'acque.shp'))
-    acque = acque_ds.CreateLayer('strade', None, wkbPolygon)
+    acque = acque_ds.CreateLayer('acque', None, wkbPolygon)
+
+    confini_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'confini.shp'))
+    confini = confini_ds.CreateLayer('confini', None, wkbPolygon)
+    
+    confini.CreateField(f_foglio)
 
     for bordo in foglio['oggetti']['BORDO']:
 
@@ -72,7 +77,11 @@ def foglio_to_shapefiles(foglio, outpath):
             poly.AddGeometry(ring)
 
         if len(bordo['CODICE IDENTIFICATIVO']) == 11:
-            print 'Confine! Dropping:', bordo
+            feat = Feature(confini.GetLayerDefn())
+            feat.SetGeometry(poly)
+            feat.SetField('foglio', foglio['CODICE FOGLIO'])
+            confini.CreateFeature(feat)
+            feat.Destroy()
         elif bordo['CODICE IDENTIFICATIVO'] == 'STRADA':
             feat = Feature(strade.GetLayerDefn())
             feat.SetGeometry(poly)
@@ -87,7 +96,7 @@ def foglio_to_shapefiles(foglio, outpath):
             feat = Feature(edifici.GetLayerDefn())
             feat.SetField('part', bordo['CODICE IDENTIFICATIVO'][:-1])
             feat.SetField('comune', foglio['CODICE COMUNE'])
-            feat.SetField('foglio', foglio['CODICE NUMERO FOGLIO'])
+            feat.SetField('foglio', foglio['CODICE FOGLIO'])
             feat.SetGeometry(poly)
             edifici.CreateFeature(feat)
             feat.Destroy()
@@ -95,10 +104,35 @@ def foglio_to_shapefiles(foglio, outpath):
             feat = Feature(edifici.GetLayerDefn())
             feat.SetField('part', bordo['CODICE IDENTIFICATIVO'])
             feat.SetField('comune', foglio['CODICE COMUNE'])
-            feat.SetField('foglio', foglio['CODICE NUMERO FOGLIO'])
+            feat.SetField('foglio', foglio['CODICE FOGLIO'])
             feat.SetGeometry(poly)
             particelle.CreateFeature(feat)
             feat.Destroy()
+
+    fiduciali_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'fiduciali.shp'))
+    fiduciali = fiduciali_ds.CreateLayer('strade', None, wkbPoint)
+
+    f_numero = FieldDefn('numero', OFTString)
+    f_numero.SetWidth(8)
+
+    fiduciali.CreateField(f_codice_comune)
+    fiduciali.CreateField(f_foglio)
+    fiduciali.CreateField(f_numero)
+
+    for fiduciale in foglio['oggetti']['FIDUCIALE']:
+        x, y = map(float, (fiduciale['POSIZIONEX'], fiduciale['POSIZIONEY']))
+        if True:
+            x, y = trasformation.TransformPoint(x, y)[:2]
+        feat = Feature(fiduciali.GetLayerDefn())
+        feat.SetField('comune', foglio['CODICE COMUNE'])
+        feat.SetField('foglio', foglio['CODICE FOGLIO'])
+        feat.SetField('numero', fiduciale['NUMERO IDENTIFICATIVO'])
+        pt = Geometry(wkbPoint)
+        pt.SetPoint_2D(0, x, y)
+        feat.SetGeometry(pt)
+        fiduciali.CreateFeature(feat)
+        print 'PF%02d/%s%s/%s' % (int(fiduciale['NUMERO IDENTIFICATIVO']),
+            foglio['CODICE NUMERO FOGLIO'][1:], foglio['CODICE ALLEGATO'], foglio['CODICE COMUNE'])
 
 
 def tabisole(cxf, oggetto):
@@ -131,7 +165,8 @@ def do_main(basepath):
     
     # check basename
     assert len(basename) == 11
-    
+
+    foglio['CODICE FOGLIO'] = basename
     foglio['CODICE COMUNE'] = basename[:4]
     foglio['CODICE SEZIONE CENSUARIA'] = basename[4]
     assert foglio['CODICE SEZIONE CENSUARIA'] in ['A', 'B', '_']
@@ -175,21 +210,6 @@ def do_main(basepath):
 
         foglio['oggetti'][line].append(oggetto)
 
-#        if len(oggetto['CODICE IDENTIFICATIVO']) == 11:
-#            print '*** CONFINE', elemento['CODICE IDENTIFICATIVO']
-#        elif oggetto['CODICE IDENTIFICATIVO'] == 'STRADA':
-#            print '*** STRADA', elemento['CODICE IDENTIFICATIVO']
-#        elif oggetto['CODICE IDENTIFICATIVO'] == 'ACQUA':
-#            print '*** FABBRICATO', elemento['CODICE IDENTIFICATIVO']
-#        elif oggetto['CODICE IDENTIFICATIVO'].endswith('+'):
-#            print '*** FABBRICATO in PARTICELLA', elemento['CODICE IDENTIFICATIVO'][:-1]
-#        else:
-#            print '*** PARTICELLA', elemento['CODICE IDENTIFICATIVO']
-
-
-#            print 'FIDUCIALE', 'PF%02d/%s%s/%s' % (int(elemento['NUMERO IDENTIFICATIVO']), codice_numero_foglio[1:], codice_allegato, codice_comune)
-#            x,  y = float(elemento['POSIZIONEX']), float(elemento['POSIZIONEY'])
-#            print x, y, trasformation.TransformPoint(x, y)[:2]
         if line == 'EOF':
             # record di terminazione
             break
