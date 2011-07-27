@@ -1,6 +1,7 @@
 
 from os import mkdir
 from os.path import join, basename as path_basename
+import sys
 
 from osgeo.osr import CoordinateTransformation, SpatialReference
 from osgeo.ogr import GetDriverByName, wkbPolygon, wkbLinearRing, Feature, Geometry, FieldDefn, OFTString
@@ -19,15 +20,23 @@ def foglio_to_shapefiles(foglio, outpath):
 
     particelle_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'particelle.shp'))
     particelle = particelle_ds.CreateLayer('particelle', None, wkbPolygon)
-    particelle_particella = FieldDefn('particella', OFTString)
-    particelle_particella.SetWidth(8)
-    particelle.CreateField(particelle_particella)
+    f_codice_comune = FieldDefn('comune', OFTString)
+    f_codice_comune.SetWidth(4)
+    f_foglio = FieldDefn('foglio', OFTString)
+    f_foglio.SetWidth(6)
+    f_particella = FieldDefn('part', OFTString)
+    f_particella.SetWidth(8)
+
+    particelle.CreateField(f_codice_comune)
+    particelle.CreateField(f_foglio)
+    particelle.CreateField(f_particella)
 
     edifici_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'edifici.shp'))
     edifici = edifici_ds.CreateLayer('edifici', None, wkbPolygon)
-    edifici_particella = FieldDefn('particella', OFTString)
-    edifici_particella.SetWidth(8)
-    edifici.CreateField(edifici_particella)
+
+    edifici.CreateField(f_codice_comune)
+    edifici.CreateField(f_foglio)
+    edifici.CreateField(f_particella)
 
     strade_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'strade.shp'))
     strade = strade_ds.CreateLayer('strade', None, wkbPolygon)
@@ -44,8 +53,10 @@ def foglio_to_shapefiles(foglio, outpath):
         vertici_contorno = int(bordo['NUMEROVERTICI']) - sum(tabisole)
         ring = Geometry(wkbLinearRing)
         for vertice in range(vertici_contorno):
-            x, y = bordo['VERTICI'][vertice]
-            ring.AddPoint(float(x), float(y))
+            x, y = map(float, bordo['VERTICI'][vertice])
+            if True:
+                x, y = trasformation.TransformPoint(x, y)[:2]
+            ring.AddPoint(x, y)
         ring.CloseRings()
         poly.AddGeometry(ring)
 
@@ -53,8 +64,10 @@ def foglio_to_shapefiles(foglio, outpath):
         for isola in range(int(bordo['NUMEROISOLE'])):
             ring = Geometry(wkbLinearRing)
             for vertice in range(vertice + 1, vertice + 1 + tabisole[isola]):
-                x, y = bordo['VERTICI'][vertice]
-                ring.AddPoint(float(x), float(y))
+                x, y = map(float, bordo['VERTICI'][vertice])
+                if True:
+                    x, y = trasformation.TransformPoint(x, y)[:2]
+                ring.AddPoint(x, y)
             ring.CloseRings()
             poly.AddGeometry(ring)
 
@@ -72,13 +85,17 @@ def foglio_to_shapefiles(foglio, outpath):
             feat.Destroy()
         elif bordo['CODICE IDENTIFICATIVO'][-1] == '+':
             feat = Feature(edifici.GetLayerDefn())
-            feat.SetField('particella', bordo['CODICE IDENTIFICATIVO'][:-1])
+            feat.SetField('part', bordo['CODICE IDENTIFICATIVO'][:-1])
+            feat.SetField('comune', foglio['CODICE COMUNE'])
+            feat.SetField('foglio', foglio['CODICE NUMERO FOGLIO'])
             feat.SetGeometry(poly)
             edifici.CreateFeature(feat)
             feat.Destroy()
         else:
             feat = Feature(edifici.GetLayerDefn())
-            feat.SetField('particella', bordo['CODICE IDENTIFICATIVO'])
+            feat.SetField('part', bordo['CODICE IDENTIFICATIVO'])
+            feat.SetField('comune', foglio['CODICE COMUNE'])
+            feat.SetField('foglio', foglio['CODICE NUMERO FOGLIO'])
             feat.SetGeometry(poly)
             particelle.CreateFeature(feat)
             feat.Destroy()
@@ -184,7 +201,7 @@ def do_main(basepath):
 
 
 def main():
-    do_main('E259_006000')
+    do_main(sys.argv[1])
 
 
 if __name__ == '__main__':
