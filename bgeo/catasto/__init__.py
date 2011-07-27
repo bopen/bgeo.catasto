@@ -38,23 +38,25 @@ def foglio_to_shapefiles(foglio, outpath):
     for bordo in foglio['oggetti']['BORDO']:
 
         poly = Geometry(wkbPolygon)
-        vertice = 0
+        tabisole = map(int, bordo['TABISOLE'])
+
+        # contorno esterno
+        vertici_contorno = int(bordo['NUMEROVERTICI']) - sum(tabisole)
+        ring = Geometry(wkbLinearRing)
+        for vertice in range(vertici_contorno):
+            x, y = bordo['VERTICI'][vertice]
+            ring.AddPoint(float(x), float(y))
+        ring.CloseRings()
+        poly.AddGeometry(ring)
+
+        # isole
         for isola in range(int(bordo['NUMEROISOLE'])):
             ring = Geometry(wkbLinearRing)
-            print 'isola', vertice, int(bordo['TABISOLE'][isola])
-            for vertice in range(vertice, vertice + int(bordo['TABISOLE'][isola])):
+            for vertice in range(vertice + 1, vertice + 1 + tabisole[isola]):
                 x, y = bordo['VERTICI'][vertice]
                 ring.AddPoint(float(x), float(y))
             ring.CloseRings()
             poly.AddGeometry(ring)
-        ring = Geometry(wkbLinearRing)
-        print 'base', vertice, int(bordo['NUMEROVERTICI'])
-        for vertice in range(vertice, int(bordo['NUMEROVERTICI'])):
-            x, y = bordo['VERTICI'][vertice]
-            ring.AddPoint(float(x), float(y))
-        print 'fine', vertice
-        ring.CloseRings()
-        poly.AddGeometry(ring)
 
         if len(bordo['CODICE IDENTIFICATIVO']) == 11:
             print 'Confine! Dropping:', bordo
@@ -76,7 +78,7 @@ def foglio_to_shapefiles(foglio, outpath):
             feat.Destroy()
         else:
             feat = Feature(edifici.GetLayerDefn())
-            feat.SetField('particella', bordo['CODICE IDENTIFICATIVO'][:-1])
+            feat.SetField('particella', bordo['CODICE IDENTIFICATIVO'])
             feat.SetGeometry(poly)
             particelle.CreateFeature(feat)
             feat.Destroy()
@@ -178,11 +180,11 @@ def do_main(basepath):
     garbage = cxf.readline()
     assert garbage == '', 'Garbage after EOF %r' % garbage
 
-    foglio_to_shapefiles(foglio, 'test')
+    foglio_to_shapefiles(foglio, basepath)
 
 
 def main():
-    do_main('E259_004900')
+    do_main('E259_006000')
 
 
 if __name__ == '__main__':
