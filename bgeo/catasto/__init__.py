@@ -39,26 +39,19 @@ def foglio_to_shapefiles(foglio, outpath):
     f_interno_x = FieldDefn('interno_x', OFTReal)
     f_interno_y = FieldDefn('interno_y', OFTReal)
 
-    layers = {}
-    for tipo_bordo in ['bordi', 'confini', 'strade', 'acque', 'edifici', 'particelle']:
-        ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, tipo_bordo + '.shp'))
-        layer = ds.CreateLayer(tipo_bordo, gauss_boaga_ovest, wkbPolygon)
+    ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'bordi.shp'))
+    bordi = ds.CreateLayer('bordi', gauss_boaga_ovest, wkbPolygon)
 
-        layer.CreateField(f_comune)
-        layer.CreateField(f_foglio)
-        layer.CreateField(f_tipo)
-        layer.CreateField(f_part)
-        layer.CreateField(f_dimensione)
-        layer.CreateField(f_angolo)
-        layer.CreateField(f_pos_x)
-        layer.CreateField(f_pos_y)
-        layer.CreateField(f_interno_x)
-        layer.CreateField(f_interno_y)
-        
-        # NEVER EVER LOSE THE REFERENCE TO ds!
-        layers[tipo_bordo] = (layer, ds)
-
-    bordi = layers['bordi'][0]
+    bordi.CreateField(f_comune)
+    bordi.CreateField(f_foglio)
+    bordi.CreateField(f_tipo)
+    bordi.CreateField(f_part)
+    bordi.CreateField(f_dimensione)
+    bordi.CreateField(f_angolo)
+    bordi.CreateField(f_pos_x)
+    bordi.CreateField(f_pos_y)
+    bordi.CreateField(f_interno_x)
+    bordi.CreateField(f_interno_y)
 
     for bordo in foglio['oggetti']['BORDO']:
         poly = Geometry(wkbPolygon)
@@ -87,22 +80,17 @@ def foglio_to_shapefiles(foglio, outpath):
             poly.AddGeometry(ring)
 
         if len(bordo['CODICE IDENTIFICATIVO']) == 11:
-            layer = layers['confini'][0]
             tipo = 'CONFINE'
         elif bordo['CODICE IDENTIFICATIVO'] == 'STRADA':
-            layer = layers['strade'][0]
             tipo = 'STRADA'
         elif bordo['CODICE IDENTIFICATIVO'] == 'ACQUA':
-            layer = layers['acque'][0]
             tipo = 'ACQUA'
         elif bordo['CODICE IDENTIFICATIVO'][-1] == '+':
-            layer = layers['edifici'][0]
             tipo = 'FABBRICATO'
         else:
-            layer = layers['particelle'][0]
             tipo = 'PARTICELLA'
     
-        feat = Feature(layer.GetLayerDefn())
+        feat = Feature(bordi.GetLayerDefn())
         feat.SetField('comune', foglio['CODICE COMUNE'])
         feat.SetField('foglio', foglio['CODICE FOGLIO'])
         feat.SetField('tipo', tipo)
@@ -120,7 +108,6 @@ def foglio_to_shapefiles(foglio, outpath):
         feat.SetField('interno_y', interno_y)
 
         feat.SetGeometry(poly)
-        layer.CreateFeature(feat)
         bordi.CreateFeature(feat)
         feat.Destroy()
 
