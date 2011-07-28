@@ -4,7 +4,8 @@ from os.path import join, basename as path_basename
 import sys
 
 from osgeo.osr import CoordinateTransformation, SpatialReference
-from osgeo.ogr import GetDriverByName, wkbPoint, wkbPolygon, wkbLinearRing, Feature, Geometry, FieldDefn, OFTString
+from osgeo.ogr import GetDriverByName, wkbPoint, wkbPolygon, wkbLinearRing, Feature, Geometry, FieldDefn
+from osgeo.ogr import OFTString, OFTInteger, OFTReal
 
 local_cassini_soldener = SpatialReference()
 # local_cassini_soldener.ImportFromProj4('+proj=cass +lat_0=41.650375 +lon_0=14.259775 +x_0=0.8 +y_0=-1.3 +ellps=intl +units=m +no_defs')
@@ -18,39 +19,36 @@ trasformation = CoordinateTransformation(local_cassini_soldener, gauss_boaga_ove
 def foglio_to_shapefiles(foglio, outpath):
     mkdir(outpath)
 
-    particelle_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'particelle.shp'))
-    particelle = particelle_ds.CreateLayer('particelle', None, wkbPolygon)
-    f_codice_comune = FieldDefn('comune', OFTString)
-    f_codice_comune.SetWidth(4)
+    f_comune = FieldDefn('comune', OFTString)
+    f_comune.SetWidth(4)
     f_foglio = FieldDefn('foglio', OFTString)
     f_foglio.SetWidth(11)
-    f_particella = FieldDefn('part', OFTString)
-    f_particella.SetWidth(8)
+    f_part = FieldDefn('part', OFTString)
+    f_part.SetWidth(8)
+    f_dimensione = FieldDefn('dimensione', OFTInteger)
+    f_pos_x = FieldDefn('pos_x', OFTReal)
+    f_pos_y = FieldDefn('pos_y', OFTReal)
+    f_interno_x = FieldDefn('interno_x', OFTReal)
+    f_interno_y = FieldDefn('interno_y', OFTReal)
 
-    particelle.CreateField(f_codice_comune)
-    particelle.CreateField(f_foglio)
-    particelle.CreateField(f_particella)
+    layers = {}
+    for tipo_bordo in ['confini', 'strade', 'acque', 'edifici', 'particelle']:
+        ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, tipo_bordo + '.shp'))
+        layer = ds.CreateLayer(tipo_bordo, None, wkbPolygon)
 
-    edifici_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'edifici.shp'))
-    edifici = edifici_ds.CreateLayer('edifici', None, wkbPolygon)
-
-    edifici.CreateField(f_codice_comune)
-    edifici.CreateField(f_foglio)
-    edifici.CreateField(f_particella)
-
-    strade_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'strade.shp'))
-    strade = strade_ds.CreateLayer('strade', None, wkbPolygon)
-
-    acque_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'acque.shp'))
-    acque = acque_ds.CreateLayer('acque', None, wkbPolygon)
-
-    confini_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'confini.shp'))
-    confini = confini_ds.CreateLayer('confini', None, wkbPolygon)
-    
-    confini.CreateField(f_foglio)
+        layer.CreateField(f_comune)
+        layer.CreateField(f_foglio)
+        layer.CreateField(f_part)
+        layer.CreateField(f_dimensione)
+        layer.CreateField(f_pos_x)
+        layer.CreateField(f_pos_y)
+        layer.CreateField(f_interno_x)
+        layer.CreateField(f_interno_y)
+        
+        # NEVER EVER LOSE THE REFERENCE TO ds!
+        layers[tipo_bordo] = (layer, ds)
 
     for bordo in foglio['oggetti']['BORDO']:
-
         poly = Geometry(wkbPolygon)
         tabisole = map(int, bordo['TABISOLE'])
 
@@ -77,37 +75,37 @@ def foglio_to_shapefiles(foglio, outpath):
             poly.AddGeometry(ring)
 
         if len(bordo['CODICE IDENTIFICATIVO']) == 11:
-            feat = Feature(confini.GetLayerDefn())
-            feat.SetGeometry(poly)
-            feat.SetField('foglio', foglio['CODICE FOGLIO'])
-            confini.CreateFeature(feat)
-            feat.Destroy()
+            layer = layers['confini'][0]
         elif bordo['CODICE IDENTIFICATIVO'] == 'STRADA':
-            feat = Feature(strade.GetLayerDefn())
-            feat.SetGeometry(poly)
-            strade.CreateFeature(feat)
-            feat.Destroy()
+            layer = layers['strade'][0]
         elif bordo['CODICE IDENTIFICATIVO'] == 'ACQUA':
-            feat = Feature(acque.GetLayerDefn())
-            feat.SetGeometry(poly)
-            acque.CreateFeature(feat)
-            feat.Destroy()
+            layer = layers['acque'][0]
         elif bordo['CODICE IDENTIFICATIVO'][-1] == '+':
-            feat = Feature(edifici.GetLayerDefn())
-            feat.SetField('part', bordo['CODICE IDENTIFICATIVO'][:-1])
-            feat.SetField('comune', foglio['CODICE COMUNE'])
-            feat.SetField('foglio', foglio['CODICE FOGLIO'])
-            feat.SetGeometry(poly)
-            edifici.CreateFeature(feat)
-            feat.Destroy()
+            layer = layers['edifici'][0]
         else:
-            feat = Feature(edifici.GetLayerDefn())
+            layer = layers['particelle'][0]
+    
+        feat = Feature(layer.GetLayerDefn())
+        feat.SetField('comune', foglio['CODICE COMUNE'])
+        feat.SetField('foglio', foglio['CODICE FOGLIO'])
+        if bordo['CODICE IDENTIFICATIVO'][-1] == '+':
+            feat.SetField('part', bordo['CODICE IDENTIFICATIVO'][:-1])
+        else:
             feat.SetField('part', bordo['CODICE IDENTIFICATIVO'])
-            feat.SetField('comune', foglio['CODICE COMUNE'])
-            feat.SetField('foglio', foglio['CODICE FOGLIO'])
-            feat.SetGeometry(poly)
-            particelle.CreateFeature(feat)
-            feat.Destroy()
+        feat.SetField('dimensione', int(bordo['DIMENSIONE']))
+        pos_x, pos_y = map(float, (bordo['POSIZIONEX'], bordo['POSIZIONEY']))
+        interno_x, interno_y = map(float, (bordo['PUNTOINTERNOX'], bordo['PUNTOINTERNOY']))
+        if True:
+            pos_x, pos_y = trasformation.TransformPoint(pos_x, pos_y)[:2]
+            interno_x, interno_y = trasformation.TransformPoint(interno_x, interno_y)[:2]
+        feat.SetField('pos_x', pos_x)
+        feat.SetField('pos_y', pos_y)
+        feat.SetField('interno_x', interno_x)
+        feat.SetField('interno_y', interno_y)
+
+        feat.SetGeometry(poly)
+        layer.CreateFeature(feat)
+        feat.Destroy()
 
     fiduciali_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'fiduciali.shp'))
     fiduciali = fiduciali_ds.CreateLayer('strade', None, wkbPoint)
@@ -115,7 +113,7 @@ def foglio_to_shapefiles(foglio, outpath):
     f_numero = FieldDefn('numero', OFTString)
     f_numero.SetWidth(8)
 
-    fiduciali.CreateField(f_codice_comune)
+    fiduciali.CreateField(f_comune)
     fiduciali.CreateField(f_foglio)
     fiduciali.CreateField(f_numero)
 
@@ -131,7 +129,7 @@ def foglio_to_shapefiles(foglio, outpath):
         pt.SetPoint_2D(0, x, y)
         feat.SetGeometry(pt)
         fiduciali.CreateFeature(feat)
-        print 'PF%02d/%s%s/%s' % (int(fiduciale['NUMERO IDENTIFICATIVO']),
+        'PF%02d/%s%s/%s' % (int(fiduciale['NUMERO IDENTIFICATIVO']),
             foglio['CODICE NUMERO FOGLIO'][1:], foglio['CODICE ALLEGATO'], foglio['CODICE COMUNE'])
 
 
