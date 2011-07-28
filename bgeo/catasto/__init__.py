@@ -9,8 +9,13 @@ from osgeo.ogr import OFTString, OFTInteger, OFTReal
 
 local_cassini_soldener = SpatialReference()
 # local_cassini_soldener.ImportFromProj4('+proj=cass +lat_0=41.650375 +lon_0=14.259775 +x_0=0.8 +y_0=-1.3 +ellps=intl +units=m +no_defs')
-local_cassini_soldener.ImportFromProj4('+proj=cass +lat_0=41.650375 +lon_0=14.259775 +x_0=0 +y_0=0 +ellps=intl +units=m +no_defs')
+local_cassini_soldener.ImportFromProj4(
+    '+proj=cass +lat_0=41.650375 +lon_0=14.259775 +x_0=0 +y_0=0 +ellps=intl +units=m +no_defs'
+)
 gauss_boaga_ovest = SpatialReference()
+#gauss_boaga_ovest.ImportFromProj4(
+#    '+proj=tmerc +lat_0=0 +lon_0=15 +k=0.9996 +x_0=2520000 +y_0=0 +ellps=intl +units=m +no_defs +towgs84=-104.0,-51.3,-8.4,0.971,-2.917,0.714,-11.68'
+#)
 gauss_boaga_ovest.ImportFromEPSG(3004)
 
 trasformation = CoordinateTransformation(local_cassini_soldener, gauss_boaga_ovest)
@@ -23,23 +28,28 @@ def foglio_to_shapefiles(foglio, outpath):
     f_comune.SetWidth(4)
     f_foglio = FieldDefn('foglio', OFTString)
     f_foglio.SetWidth(11)
+    f_tipo = FieldDefn('tipo', OFTString)
+    f_tipo.SetWidth(11)
     f_part = FieldDefn('part', OFTString)
     f_part.SetWidth(8)
     f_dimensione = FieldDefn('dimensione', OFTInteger)
+    f_angolo = FieldDefn('angolo', OFTReal)
     f_pos_x = FieldDefn('pos_x', OFTReal)
     f_pos_y = FieldDefn('pos_y', OFTReal)
     f_interno_x = FieldDefn('interno_x', OFTReal)
     f_interno_y = FieldDefn('interno_y', OFTReal)
 
     layers = {}
-    for tipo_bordo in ['confini', 'strade', 'acque', 'edifici', 'particelle']:
+    for tipo_bordo in ['bordi', 'confini', 'strade', 'acque', 'edifici', 'particelle']:
         ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, tipo_bordo + '.shp'))
-        layer = ds.CreateLayer(tipo_bordo, None, wkbPolygon)
+        layer = ds.CreateLayer(tipo_bordo, gauss_boaga_ovest, wkbPolygon)
 
         layer.CreateField(f_comune)
         layer.CreateField(f_foglio)
+        layer.CreateField(f_tipo)
         layer.CreateField(f_part)
         layer.CreateField(f_dimensione)
+        layer.CreateField(f_angolo)
         layer.CreateField(f_pos_x)
         layer.CreateField(f_pos_y)
         layer.CreateField(f_interno_x)
@@ -47,6 +57,8 @@ def foglio_to_shapefiles(foglio, outpath):
         
         # NEVER EVER LOSE THE REFERENCE TO ds!
         layers[tipo_bordo] = (layer, ds)
+
+    bordi = layers['bordi'][0]
 
     for bordo in foglio['oggetti']['BORDO']:
         poly = Geometry(wkbPolygon)
@@ -76,23 +88,27 @@ def foglio_to_shapefiles(foglio, outpath):
 
         if len(bordo['CODICE IDENTIFICATIVO']) == 11:
             layer = layers['confini'][0]
+            tipo = 'CONFINE'
         elif bordo['CODICE IDENTIFICATIVO'] == 'STRADA':
             layer = layers['strade'][0]
+            tipo = 'STRADA'
         elif bordo['CODICE IDENTIFICATIVO'] == 'ACQUA':
             layer = layers['acque'][0]
+            tipo = 'ACQUA'
         elif bordo['CODICE IDENTIFICATIVO'][-1] == '+':
             layer = layers['edifici'][0]
+            tipo = 'FABBRICATO'
         else:
             layer = layers['particelle'][0]
+            tipo = 'PARTICELLA'
     
         feat = Feature(layer.GetLayerDefn())
         feat.SetField('comune', foglio['CODICE COMUNE'])
         feat.SetField('foglio', foglio['CODICE FOGLIO'])
-        if bordo['CODICE IDENTIFICATIVO'][-1] == '+':
-            feat.SetField('part', bordo['CODICE IDENTIFICATIVO'][:-1])
-        else:
-            feat.SetField('part', bordo['CODICE IDENTIFICATIVO'])
+        feat.SetField('tipo', tipo)
+        feat.SetField('part', bordo['CODICE IDENTIFICATIVO'])
         feat.SetField('dimensione', int(bordo['DIMENSIONE']))
+        feat.SetField('angolo', float(bordo['ANGOLO']))
         pos_x, pos_y = map(float, (bordo['POSIZIONEX'], bordo['POSIZIONEY']))
         interno_x, interno_y = map(float, (bordo['PUNTOINTERNOX'], bordo['PUNTOINTERNOY']))
         if True:
@@ -105,6 +121,7 @@ def foglio_to_shapefiles(foglio, outpath):
 
         feat.SetGeometry(poly)
         layer.CreateFeature(feat)
+        bordi.CreateFeature(feat)
         feat.Destroy()
 
     fiduciali_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'fiduciali.shp'))
