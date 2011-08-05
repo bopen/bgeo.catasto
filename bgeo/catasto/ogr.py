@@ -37,6 +37,8 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
     f_interno_x = FieldDefn('P_INTERNOX', OFTReal)
     f_interno_y = FieldDefn('P_INTERNOY', OFTReal)
     f_simbolo = FieldDefn('SIMBOLO', OFTInteger)
+    f_etichetta = FieldDefn('etichetta', OFTString)
+    f_etichetta.SetWidth(32)
 
     ds = GetDriverByName(format_name).CreateDataSource(destination)
     bordi = ds.CreateLayer('BORDI', gauss_boaga_ovest, wkbPolygon)
@@ -51,6 +53,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
     bordi.CreateField(f_pos_y)
     bordi.CreateField(f_interno_x)
     bordi.CreateField(f_interno_y)
+    bordi.CreateField(f_etichetta)
 
     for bordo in foglio['oggetti']['BORDO']:
         poly = Geometry(wkbPolygon)
@@ -78,6 +81,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
             ring.CloseRings()
             poly.AddGeometry(ring)
 
+        etichetta = bordo['CODICE IDENTIFICATIVO']
         if len(bordo['CODICE IDENTIFICATIVO']) == 11:
             tipo = 'CONFINE'
         elif bordo['CODICE IDENTIFICATIVO'] == 'STRADA':
@@ -86,9 +90,10 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
             tipo = 'ACQUA'
         elif bordo['CODICE IDENTIFICATIVO'][-1] == '+':
             tipo = 'FABBRICATO'
+            etichetta = ''
         else:
             tipo = 'PARTICELLA'
-    
+
         feat = Feature(bordi.GetLayerDefn())
         feat.SetField('COMUNE', foglio['CODICE COMUNE'])
         feat.SetField('FOGLIO', foglio['CODICE FOGLIO'])
@@ -105,7 +110,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
         feat.SetField('POSIZIONEY', pos_y)
         feat.SetField('P_INTERNOX', interno_x)
         feat.SetField('P_INTERNOY', interno_y)
-
+        feat.SetField('etichetta', etichetta)
         feat.SetGeometry(poly)
         bordi.CreateFeature(feat)
         feat.Destroy()
@@ -121,6 +126,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
     fiduciali.CreateField(f_simbolo)
     fiduciali.CreateField(f_pos_x)
     fiduciali.CreateField(f_pos_y)
+    fiduciali.CreateField(f_etichetta)
 
     for fiduciale in foglio['oggetti']['FIDUCIALE']:
         x, y = map(float, (fiduciale['POSIZIONEX'], fiduciale['POSIZIONEY']))
@@ -128,6 +134,9 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
         if True:
             x, y = trasformation.TransformPoint(x, y)[:2]
             pos_x, pos_y = trasformation.TransformPoint(pos_x, pos_y)[:2]
+        etichetta = 'PF%02d/%s%s/%s' % (int(fiduciale['NUMERO IDENTIFICATIVO']),
+            foglio['CODICE NUMERO FOGLIO'][1:], foglio['CODICE ALLEGATO'], foglio['CODICE COMUNE'])
+        
         feat = Feature(fiduciali.GetLayerDefn())
         feat.SetField('COMUNE', foglio['CODICE COMUNE'])
         feat.SetField('FOGLIO', foglio['CODICE FOGLIO'])
@@ -135,10 +144,8 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
         feat.SetField('SIMBOLO', fiduciale['CODICE SIMBOLO'])
         feat.SetField('POSIZIONEX', pos_x)
         feat.SetField('POSIZIONEY', pos_y)
+        feat.SetField('etichetta', etichetta)
         pt = Geometry(wkbPoint)
         pt.SetPoint_2D(0, x, y)
         feat.SetGeometry(pt)
         fiduciali.CreateFeature(feat)
-        'PF%02d/%s%s/%s' % (int(fiduciale['NUMERO IDENTIFICATIVO']),
-            foglio['CODICE NUMERO FOGLIO'][1:], foglio['CODICE ALLEGATO'], foglio['CODICE COMUNE'])
-
