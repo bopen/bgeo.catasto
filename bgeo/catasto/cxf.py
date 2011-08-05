@@ -4,6 +4,28 @@ from os.path import join, basename as path_basename
 import sys
 
 
+def tabisole(cxf, oggetto):
+    oggetto['TABISOLE'] = []
+    for isola in range(int(oggetto['NUMEROISOLE'])):
+        oggetto['TABISOLE'].append(cxf.next().strip())
+
+def vertici(cxf, oggetto):
+    oggetto['VERTICI'] = []
+    for vertice in range(int(oggetto['NUMEROVERTICI'])):
+        oggetto['VERTICI'].append((cxf.next().strip(), cxf.next().strip()))
+
+oggetti_cartografici = {
+    'BORDO': (['CODICE IDENTIFICATIVO', 'DIMENSIONE', 'ANGOLO',
+        'POSIZIONEX', 'POSIZIONEY', 'PUNTOINTERNOX', 'PUNTOINTERNOY',
+        'NUMEROISOLE', 'NUMEROVERTICI'], [tabisole, vertici]),
+    'TESTO': (['TESTO', 'DIMENSIONE', 'ANGOLO','POSIZIONEX', 'POSIZIONEY'], []),
+    'SIMBOLO': (['CODICE SIMBOLO', 'ANGOLO', 'POSIZIONEX', 'POSIZIONEY'], []),
+    'FIDUCIALE': (['NUMERO IDENTIFICATIVO', 'CODICE SIMBOLO', 'POSIZIONEX', 'POSIZIONEY',
+        'PUNTORAPPRESENTAZIONEX', 'PUNTORAPPRESENTAZIONEY'], []),
+    'LINEA': (['CODICE TIPO DI TRATTO', 'NUMEROVERTICI'], [vertici]),
+    'EOF': ([], []),
+}
+
 def do_main(basepath):
     foglio = {}
 
@@ -63,12 +85,5 @@ def do_main(basepath):
     garbage = cxf.readline()
     assert garbage == '', 'Garbage after EOF %r' % garbage
 
-    foglio_to_shapefiles(foglio, basepath)
+    return foglio
 
-
-def main():
-    do_main(sys.argv[1])
-
-
-if __name__ == '__main__':
-    main()
