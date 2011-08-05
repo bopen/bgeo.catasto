@@ -1,0 +1,6 @@
+*.pyc
+*.egg-info
+docs/Makefile
+docs/make.bat
+docs/html
+docs/doctrees
