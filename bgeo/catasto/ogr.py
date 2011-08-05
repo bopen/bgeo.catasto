@@ -22,20 +22,21 @@ trasformation = CoordinateTransformation(local_cassini_soldener, gauss_boaga_ove
 
 
 def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
-    f_comune = FieldDefn('comune', OFTString)
+    f_comune = FieldDefn('COMUNE', OFTString)
     f_comune.SetWidth(4)
-    f_foglio = FieldDefn('foglio', OFTString)
+    f_foglio = FieldDefn('FOGLIO', OFTString)
     f_foglio.SetWidth(11)
-    f_tipo = FieldDefn('tipo', OFTString)
+    f_tipo = FieldDefn('TIPO', OFTString)
     f_tipo.SetWidth(11)
-    f_part = FieldDefn('part', OFTString)
+    f_part = FieldDefn('PARTICELLA', OFTString)
     f_part.SetWidth(8)
-    f_dimensione = FieldDefn('dimensione', OFTInteger)
-    f_angolo = FieldDefn('angolo', OFTReal)
-    f_pos_x = FieldDefn('pos_x', OFTReal)
-    f_pos_y = FieldDefn('pos_y', OFTReal)
-    f_interno_x = FieldDefn('interno_x', OFTReal)
-    f_interno_y = FieldDefn('interno_y', OFTReal)
+    f_dimensione = FieldDefn('DIMENSIONE', OFTInteger)
+    f_angolo = FieldDefn('ANGOLO', OFTReal)
+    f_pos_x = FieldDefn('POSIZIONEX', OFTReal)
+    f_pos_y = FieldDefn('POSIZIONEY', OFTReal)
+    f_interno_x = FieldDefn('P_INTERNOX', OFTReal)
+    f_interno_y = FieldDefn('P_INTERNOY', OFTReal)
+    f_simbolo = FieldDefn('SIMBOLO', OFTInteger)
 
     ds = GetDriverByName(format_name).CreateDataSource(destination)
     bordi = ds.CreateLayer('BORDI', gauss_boaga_ovest, wkbPolygon)
@@ -89,21 +90,21 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
             tipo = 'PARTICELLA'
     
         feat = Feature(bordi.GetLayerDefn())
-        feat.SetField('comune', foglio['CODICE COMUNE'])
-        feat.SetField('foglio', foglio['CODICE FOGLIO'])
-        feat.SetField('tipo', tipo)
-        feat.SetField('part', bordo['CODICE IDENTIFICATIVO'])
-        feat.SetField('dimensione', int(bordo['DIMENSIONE']))
-        feat.SetField('angolo', float(bordo['ANGOLO']))
+        feat.SetField('COMUNE', foglio['CODICE COMUNE'])
+        feat.SetField('FOGLIO', foglio['CODICE FOGLIO'])
+        feat.SetField('TIPO', tipo)
+        feat.SetField('PARTICELLA', bordo['CODICE IDENTIFICATIVO'])
+        feat.SetField('DIMENSIONE', int(bordo['DIMENSIONE']))
+        feat.SetField('ANGOLO', float(bordo['ANGOLO']))
         pos_x, pos_y = map(float, (bordo['POSIZIONEX'], bordo['POSIZIONEY']))
         interno_x, interno_y = map(float, (bordo['PUNTOINTERNOX'], bordo['PUNTOINTERNOY']))
         if True:
             pos_x, pos_y = trasformation.TransformPoint(pos_x, pos_y)[:2]
             interno_x, interno_y = trasformation.TransformPoint(interno_x, interno_y)[:2]
-        feat.SetField('pos_x', pos_x)
-        feat.SetField('pos_y', pos_y)
-        feat.SetField('interno_x', interno_x)
-        feat.SetField('interno_y', interno_y)
+        feat.SetField('POSIZIONEX', pos_x)
+        feat.SetField('POSIZIONEY', pos_y)
+        feat.SetField('P_INTERNOX', interno_x)
+        feat.SetField('P_INTERNOY', interno_y)
 
         feat.SetGeometry(poly)
         bordi.CreateFeature(feat)
@@ -117,15 +118,23 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
     fiduciali.CreateField(f_comune)
     fiduciali.CreateField(f_foglio)
     fiduciali.CreateField(f_numero)
+    fiduciali.CreateField(f_simbolo)
+    fiduciali.CreateField(f_pos_x)
+    fiduciali.CreateField(f_pos_y)
 
     for fiduciale in foglio['oggetti']['FIDUCIALE']:
         x, y = map(float, (fiduciale['POSIZIONEX'], fiduciale['POSIZIONEY']))
+        pos_x, pos_y = map(float, (fiduciale['PUNTORAPPRESENTAZIONEX'], fiduciale['PUNTORAPPRESENTAZIONEY']))
         if True:
             x, y = trasformation.TransformPoint(x, y)[:2]
+            pos_x, pos_y = trasformation.TransformPoint(pos_x, pos_y)[:2]
         feat = Feature(fiduciali.GetLayerDefn())
-        feat.SetField('comune', foglio['CODICE COMUNE'])
-        feat.SetField('foglio', foglio['CODICE FOGLIO'])
-        feat.SetField('numero', fiduciale['NUMERO IDENTIFICATIVO'])
+        feat.SetField('COMUNE', foglio['CODICE COMUNE'])
+        feat.SetField('FOGLIO', foglio['CODICE FOGLIO'])
+        feat.SetField('NUMERO', fiduciale['NUMERO IDENTIFICATIVO'])
+        feat.SetField('SIMBOLO', fiduciale['CODICE SIMBOLO'])
+        feat.SetField('POSIZIONEX', pos_x)
+        feat.SetField('POSIZIONEY', pos_y)
         pt = Geometry(wkbPoint)
         pt.SetPoint_2D(0, x, y)
         feat.SetGeometry(pt)
