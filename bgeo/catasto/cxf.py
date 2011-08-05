@@ -26,7 +26,7 @@ oggetti_cartografici = {
     'EOF': ([], []),
 }
 
-def do_main(basepath):
+def parse_foglio(basepath):
     foglio = {}
 
     basename = path_basename(basepath).upper()

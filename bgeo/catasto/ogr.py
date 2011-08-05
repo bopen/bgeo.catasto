@@ -21,9 +21,7 @@ gauss_boaga_ovest.ImportFromEPSG(3004)
 trasformation = CoordinateTransformation(local_cassini_soldener, gauss_boaga_ovest)
 
 
-def foglio_to_shapefiles(foglio, outpath):
-    mkdir(outpath)
-
+def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
     f_comune = FieldDefn('comune', OFTString)
     f_comune.SetWidth(4)
     f_foglio = FieldDefn('foglio', OFTString)
@@ -39,8 +37,8 @@ def foglio_to_shapefiles(foglio, outpath):
     f_interno_x = FieldDefn('interno_x', OFTReal)
     f_interno_y = FieldDefn('interno_y', OFTReal)
 
-    ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'bordi.shp'))
-    bordi = ds.CreateLayer('bordi', gauss_boaga_ovest, wkbPolygon)
+    ds = GetDriverByName(format_name).CreateDataSource(destination)
+    bordi = ds.CreateLayer('BORDI', gauss_boaga_ovest, wkbPolygon)
 
     bordi.CreateField(f_comune)
     bordi.CreateField(f_foglio)
@@ -111,8 +109,7 @@ def foglio_to_shapefiles(foglio, outpath):
         bordi.CreateFeature(feat)
         feat.Destroy()
 
-    fiduciali_ds = GetDriverByName('ESRI Shapefile').CreateDataSource(join(outpath, 'fiduciali.shp'))
-    fiduciali = fiduciali_ds.CreateLayer('strade', None, wkbPoint)
+    fiduciali = ds.CreateLayer('FIDUCIALI', gauss_boaga_ovest, wkbPoint)
 
     f_numero = FieldDefn('numero', OFTString)
     f_numero.SetWidth(8)
