@@ -27,13 +27,14 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
     f_comune.SetWidth(4)
     f_foglio = FieldDefn('FOGLIO', OFTString)
     f_foglio.SetWidth(11)
-    f_tipo = FieldDefn('TIPO', OFTString)
+    f_tipo = FieldDefn('tipo', OFTString)
     f_tipo.SetWidth(11)
     f_part = FieldDefn('PARTICELLA', OFTString)
     f_part.SetWidth(8)
     f_numero = FieldDefn('NUMERO', OFTString)
     f_part.SetWidth(8)
     f_dimensione = FieldDefn('DIMENSIONE', OFTInteger)
+    f_area = FieldDefn('AREA', OFTInteger)
     f_angolo = FieldDefn('ANGOLO', OFTReal)
     f_pos_x = FieldDefn('POSIZIONEX', OFTReal)
     f_pos_y = FieldDefn('POSIZIONEY', OFTReal)
@@ -60,6 +61,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
     bordi.CreateField(f_pos_y)
     bordi.CreateField(f_interno_x)
     bordi.CreateField(f_interno_y)
+    bordi.CreateField(f_area)
     bordi.CreateField(f_etichetta)
 
     for oggetto in foglio['oggetti']['BORDO']:
@@ -89,22 +91,13 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
             poly.AddGeometry(ring)
 
         etichetta = oggetto['CODICE IDENTIFICATIVO']
-        if len(oggetto['CODICE IDENTIFICATIVO']) == 11:
-            tipo = 'CONFINE'
-        elif oggetto['CODICE IDENTIFICATIVO'] == 'STRADA':
-            tipo = 'STRADA'
-        elif oggetto['CODICE IDENTIFICATIVO'] == 'ACQUA':
-            tipo = 'ACQUA'
-        elif oggetto['CODICE IDENTIFICATIVO'][-1] == '+':
-            tipo = 'FABBRICATO'
+        if oggetto['CODICE IDENTIFICATIVO'][-1] == '+':
             etichetta = ''
-        else:
-            tipo = 'PARTICELLA'
 
         feat = Feature(bordi.GetLayerDefn())
         feat.SetField('COMUNE', foglio['CODICE COMUNE'])
         feat.SetField('FOGLIO', foglio['CODICE FOGLIO'])
-        feat.SetField('TIPO', tipo)
+        feat.SetField('tipo', oggetto['tipo'])
         feat.SetField('PARTICELLA', oggetto['CODICE IDENTIFICATIVO'])
         feat.SetField('DIMENSIONE', int(oggetto['DIMENSIONE']))
         feat.SetField('ANGOLO', float(oggetto['ANGOLO']))
@@ -117,6 +110,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
         feat.SetField('POSIZIONEY', pos_y)
         feat.SetField('P_INTERNOX', interno_x)
         feat.SetField('P_INTERNOY', interno_y)
+        feat.SetField('AREA', oggetto.get('AREA', -1))
         feat.SetField('etichetta', etichetta)
         feat.SetGeometry(poly)
         bordi.CreateFeature(feat)
