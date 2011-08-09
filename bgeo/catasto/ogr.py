@@ -8,21 +8,31 @@ from osgeo.ogr import wkbPoint, wkbPolygon, wkbLinearRing, wkbLineString
 from osgeo.ogr import GetDriverByName, Feature, Geometry, FieldDefn
 from osgeo.ogr import OFTString, OFTInteger, OFTReal
 
-local_cassini_soldener = SpatialReference()
-# local_cassini_soldener.ImportFromProj4('+proj=cass +lat_0=41.650375 +lon_0=14.259775 +x_0=0.8 +y_0=-1.3 +ellps=intl +units=m +no_defs')
-local_cassini_soldener.ImportFromProj4(
-    '+proj=cass +lat_0=41.650375 +lon_0=14.259775 +x_0=0 +y_0=0 +ellps=intl +units=m +no_defs'
-)
-gauss_boaga_ovest = SpatialReference()
-#gauss_boaga_ovest.ImportFromProj4(
-#    '+proj=tmerc +lat_0=0 +lon_0=15 +k=0.9996 +x_0=2520000 +y_0=0 +ellps=intl +units=m +no_defs +towgs84=-104.0,-51.3,-8.4,0.971,-2.917,0.714,-11.68'
-#)
-gauss_boaga_ovest.ImportFromEPSG(3004)
 
-trasformation = CoordinateTransformation(local_cassini_soldener, gauss_boaga_ovest)
+cassini_soldener = '+proj=cass +lat_0=41.650375 +lon_0=14.259775 +x_0=%f +y_0=%f +ellps=intl +units=m +no_defs'
+
+comuni_shift = {
+    'B550': (12.8, 16.8),
+    'L113': (-58.8, -8.6),
+}
 
 
-def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
+def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'):
+    
+    target_srs = SpatialReference()
+    try:
+        target_srs.ImportFromEPSG(int(t_srs))
+    except TypeError:
+        raise
+        target_srs.ImportFromProj4(t_srs)
+
+    local_cassini_soldener = cassini_soldener % comuni_shift.get(foglio['CODICE COMUNE'], (0, 0))
+
+    source_srs = SpatialReference()
+    source_srs.ImportFromProj4(local_cassini_soldener)
+
+    trasformation = CoordinateTransformation(source_srs, target_srs)
+
     f_comune = FieldDefn('COMUNE', OFTString)
     f_comune.SetWidth(4)
     f_foglio = FieldDefn('FOGLIO', OFTString)
@@ -49,7 +59,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
     ds = GetDriverByName(format_name).CreateDataSource(destination)
 
     # tipo BORDO
-    bordi = ds.CreateLayer('BORDI', gauss_boaga_ovest, wkbPolygon)
+    bordi = ds.CreateLayer('BORDI', target_srs, wkbPolygon)
 
     bordi.CreateField(f_comune)
     bordi.CreateField(f_foglio)
@@ -118,7 +128,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
 
 
     # tipo TESTO
-    testi = ds.CreateLayer('TESTI', gauss_boaga_ovest, wkbPoint)
+    testi = ds.CreateLayer('TESTI', target_srs, wkbPoint)
 
     testi.CreateField(f_comune)
     testi.CreateField(f_foglio)
@@ -148,7 +158,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
 
 
     # tipo SIMBOLO
-    simboli = ds.CreateLayer('SIMBOLI', gauss_boaga_ovest, wkbPoint)
+    simboli = ds.CreateLayer('SIMBOLI', target_srs, wkbPoint)
 
     simboli.CreateField(f_comune)
     simboli.CreateField(f_foglio)
@@ -172,7 +182,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
 
 
     # tipo FIDUCIALE
-    fiduciali = ds.CreateLayer('FIDUCIALI', gauss_boaga_ovest, wkbPoint)
+    fiduciali = ds.CreateLayer('FIDUCIALI', target_srs, wkbPoint)
 
     fiduciali.CreateField(f_comune)
     fiduciali.CreateField(f_foglio)
@@ -204,9 +214,11 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
         feat.SetGeometry(pt)
         fiduciali.CreateFeature(feat)
 
+        print etichetta, oggetto['POSIZIONEX'], oggetto['POSIZIONEY'], x, y
+
 
     # tipo LINEA
-    linee = ds.CreateLayer('LINEE', gauss_boaga_ovest, wkbLineString)
+    linee = ds.CreateLayer('LINEE', target_srs, wkbLineString)
 
     linee.CreateField(f_comune)
     linee.CreateField(f_foglio)
@@ -229,3 +241,5 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile'):
         feat.SetGeometry(linea)
         linee.CreateFeature(feat)
         feat.Destroy()
+    
+    ds.Destroy()
