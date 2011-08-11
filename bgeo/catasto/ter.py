@@ -15,9 +15,7 @@ def parse_censuario(basepath):
         censuario['SEZIONE'] = basename[4]
     censuario['IDENTIFICATIVO RICHIESTA'] = basename[-4:]
 
-    censuario['terreni'] = []
-
-    print censuario
+    censuario['TERRENI'] = {}
 
     ter = open(basepath + '.TER')
 
@@ -36,7 +34,53 @@ def parse_censuario(basepath):
 
         assert len(fields) == record_len, 'Anomalous record schema line: %d, type: %r, len: %d, record: %r' % (i + 1, oggetto['TIPO RECORD'], len(fields),  record)
 
-        censuario['terreni'].append(oggetto)
+        censuario['TERRENI'][oggetto['IDENTIFICATIVO IMMOBILE']] = oggetto
+
+    censuario['SOGGETTI'] = {}
+
+    sog = open(basepath + '.SOG')
+
+    for i, raw_line in enumerate(sog):
+        record = raw_line.strip()
+        fields = record.split('|')
+        oggetto = {}
+        oggetto['IDENTIFICATIVO SOGGETTO'], oggetto['TIPO SOGGETTO'] = fields[2:4]
+        assert oggetto['TIPO SOGGETTO'] in ['P', 'G'], oggetto['TIPO SOGGETTO']
+        if oggetto['TIPO SOGGETTO'] == 'P':
+            record_len = 12
+            oggetto['COGNOME'], oggetto['NOME'], oggetto['SESSO'], oggetto['DATA DI NASCITA'], oggetto['LUOGO DI NASCITA'], oggetto['CODICE FISCALE'] = fields[6:12]
+        elif oggetto['TIPO SOGGETTO'] == 'G':
+            record_len = 8
+            oggetto['DENOMINAZIONE'], oggetto['SEDE'], oggetto['CODICE FISCALE'] = fields[4:7]
+
+        assert len(fields) == record_len, 'Anomalous record schema line: %d, type: %r, len: %d, record: %r' % (i + 1, oggetto['TIPO SOGGETTO'], len(fields),  record)
+
+        identificativo_soggetto = oggetto['IDENTIFICATIVO SOGGETTO'], oggetto['TIPO SOGGETTO']
+        censuario['SOGGETTI'][identificativo_soggetto] = oggetto
+
+    tit = open(basepath + '.TIT')
+    
+    for i, raw_line in enumerate(tit):
+        record = raw_line.strip()
+        fields = record.split('|')
+        if fields[0] != censuario['CODICE COMUNE']:
+            print 'skipping', record
+            continue
+        oggetto = {}
+        oggetto['IDENTIFICATIVO SOGGETTO'], oggetto['TIPO SOGGETTO'], oggetto['IDENTIFICATIVO IMMOBILE'], oggetto['TIPO IMMOBILE'] = fields[2:6]
+    
+        if oggetto['TIPO IMMOBILE'] == 'F':
+            continue
+
+        immobile = censuario['TERRENI'][oggetto['IDENTIFICATIVO IMMOBILE']]
+        identificativo_soggetto = oggetto['IDENTIFICATIVO SOGGETTO'], oggetto['TIPO SOGGETTO']
+        soggetto = censuario['SOGGETTI'][identificativo_soggetto]
+
+        if soggetto.get('DENOMINAZIONE', '').find('INDU') >= 0:
+            print soggetto['DENOMINAZIONE'], immobile['FOGLIO'], immobile['NUMERO']
+
+        assert len(fields) == 29 or len(fields) == 8 or len(fields) == 22, 'Anomalous record schema line: %d, type: %r, len: %d, record: %r' % (i + 1, oggetto['TIPO SOGGETTO'], len(fields),  record)
+
 
     return censuario
 
