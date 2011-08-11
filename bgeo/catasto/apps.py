@@ -24,7 +24,7 @@ def main_cxf(args=argv[1:]):
 
 
 def main_ter(args=argv[1:]):
-    from bgeo.catasto.ter import parse_censuario_terreni
+    from bgeo.catasto.ter import parse_censuario
 
     parser = OptionParser()
     parser.add_option("-d", "--destination", 
@@ -34,7 +34,7 @@ def main_ter(args=argv[1:]):
     (keys, args) = parser.parse_args(args=args)
     assert len(args) == 1
 
-    foglio = parse_censuario_terreni(args[0])
+    foglio = parse_censuario(args[0])
     if keys.destination is not None:
         destination = keys.destination
     else:
@@ -42,4 +42,4 @@ def main_ter(args=argv[1:]):
 
 
 if __name__ == '__main__':
-    main_cxf()
+    main_ter()
