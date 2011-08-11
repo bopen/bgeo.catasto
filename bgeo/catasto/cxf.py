@@ -1,7 +1,5 @@
 
-from os import mkdir
-from os.path import join, basename as path_basename
-import sys
+from os.path import basename as path_basename
 
 
 def tabisole(cxf, oggetto):

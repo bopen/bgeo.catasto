@@ -1,8 +1,4 @@
 
-from os import mkdir
-from os.path import join, basename as path_basename, splitext
-import sys
-
 from osgeo.osr import CoordinateTransformation, SpatialReference
 from osgeo.ogr import wkbPoint, wkbPolygon, wkbLinearRing, wkbLineString
 from osgeo.ogr import GetDriverByName, Feature, Geometry, FieldDefn
