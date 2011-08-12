@@ -8,8 +8,17 @@ from osgeo.ogr import OFTString, OFTInteger, OFTReal
 cassini_soldener = '+proj=cass +lat_0=41.650375 +lon_0=14.259775 +x_0=%f +y_0=%f +ellps=intl +units=m +no_defs'
 
 comuni_shift = {
-    'B550': (12.8, 16.8),
-    'L113': (-58.8, -8.6),
+    'B550': ((0, 0), (12.8, 16.8)),
+    'L113': ((0, 0), (-58.8, -8.6)),
+    ('L113', '35'): ((21.5, 18.5), (-1, 1.5)),
+    ('L113', '38'): ((26, 12.5), (-1, 1.5)),
+    ('L113', '40'): ((33, 0.5), (-1, 1.5)),
+    ('L113', '41'): ((32.5, 10.7), (-1, 1.5)),
+    ('L113', '42'): ((34, 15.3), (-1, 1.5)),
+    ('L113', '43'): ((39, 22), (-1, 1.5)),
+    ('L113', '45'): ((39.2, 2.7), (-1, 1.5)),
+    ('L113', '47'): ((42.5, 17.5), (-1, 1.5)),
+    ('L113', '48'): ((39, -7), (-1, 1.5)),
 }
 
 
@@ -22,7 +31,8 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
         raise
         target_srs.ImportFromProj4(t_srs)
 
-    local_cassini_soldener = cassini_soldener % comuni_shift.get(foglio['CODICE COMUNE'], (0, 0))
+    shift_cassini, shift_gauss_boaga = comuni_shift.get((foglio['CODICE COMUNE'], foglio['NUMERO FOGLIO']), ((0, 0), (0, 0)))
+    local_cassini_soldener = cassini_soldener % (-shift_cassini[0], -shift_cassini[1])
 
     source_srs = SpatialReference()
     source_srs.ImportFromProj4(local_cassini_soldener)
@@ -81,7 +91,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
             x, y = map(float, oggetto['VERTICI'][vertice])
             if True:
                 x, y = trasformation.TransformPoint(x, y)[:2]
-            ring.AddPoint(x, y)
+            ring.AddPoint(x + shift_gauss_boaga[0], y + shift_gauss_boaga[1])
         ring.CloseRings()
         poly.AddGeometry(ring)
 
@@ -92,7 +102,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
                 x, y = map(float, oggetto['VERTICI'][vertice])
                 if True:
                     x, y = trasformation.TransformPoint(x, y)[:2]
-                ring.AddPoint(x, y)
+                ring.AddPoint(x + shift_gauss_boaga[0], y + shift_gauss_boaga[1])
             ring.CloseRings()
             poly.AddGeometry(ring)
 
@@ -112,10 +122,10 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
         if True:
             pos_x, pos_y = trasformation.TransformPoint(pos_x, pos_y)[:2]
             interno_x, interno_y = trasformation.TransformPoint(interno_x, interno_y)[:2]
-        feat.SetField('POSIZIONEX', pos_x)
-        feat.SetField('POSIZIONEY', pos_y)
-        feat.SetField('P_INTERNOX', interno_x)
-        feat.SetField('P_INTERNOY', interno_y)
+        feat.SetField('POSIZIONEX', pos_x + shift_gauss_boaga[0])
+        feat.SetField('POSIZIONEY', pos_y + shift_gauss_boaga[1])
+        feat.SetField('P_INTERNOX', interno_x + shift_gauss_boaga[0])
+        feat.SetField('P_INTERNOY', interno_y + shift_gauss_boaga[1])
         feat.SetField('AREA', oggetto.get('AREA', -1))
         feat.SetField('etichetta', etichetta)
         feat.SetGeometry(poly)
@@ -148,7 +158,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
         feat.SetField('ANGOLO', float(oggetto['ANGOLO']))
         feat.SetField('etichetta', etichetta)
         pt = Geometry(wkbPoint)
-        pt.SetPoint_2D(0, x, y)
+        pt.SetPoint_2D(0, x + shift_gauss_boaga[0], y + shift_gauss_boaga[1])
         feat.SetGeometry(pt)
         testi.CreateFeature(feat)
 
@@ -172,7 +182,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
         feat.SetField('SIMBOLO', oggetto['CODICE SIMBOLO'])
         feat.SetField('ANGOLO', float(oggetto['ANGOLO']))
         pt = Geometry(wkbPoint)
-        pt.SetPoint_2D(0, x, y)
+        pt.SetPoint_2D(0, x + shift_gauss_boaga[0], y + shift_gauss_boaga[1])
         feat.SetGeometry(pt)
         simboli.CreateFeature(feat)
 
@@ -202,15 +212,17 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
         feat.SetField('FOGLIO', foglio['CODICE FOGLIO'])
         feat.SetField('NUMERO', oggetto['NUMERO IDENTIFICATIVO'])
         feat.SetField('SIMBOLO', oggetto['CODICE SIMBOLO'])
-        feat.SetField('POSIZIONEX', pos_x)
-        feat.SetField('POSIZIONEY', pos_y)
+        feat.SetField('POSIZIONEX', pos_x + shift_gauss_boaga[0])
+        feat.SetField('POSIZIONEY', pos_y + shift_gauss_boaga[1])
         feat.SetField('etichetta', etichetta)
         pt = Geometry(wkbPoint)
-        pt.SetPoint_2D(0, x, y)
+        pt.SetPoint_2D(0, x + shift_gauss_boaga[0], y + shift_gauss_boaga[1])
         feat.SetGeometry(pt)
         fiduciali.CreateFeature(feat)
 
-        print etichetta, oggetto['POSIZIONEX'], oggetto['POSIZIONEY'], x, y
+        print etichetta, oggetto['CODICE SIMBOLO'], \
+            float(oggetto['POSIZIONEX']) + shift_cassini[0], float(oggetto['POSIZIONEY']) + shift_cassini[1], \
+            x + shift_gauss_boaga[0], y + shift_gauss_boaga[1]
 
 
     # tipo LINEA
@@ -228,7 +240,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
             x, y = map(float, oggetto['VERTICI'][vertice])
             if True:
                 x, y = trasformation.TransformPoint(x, y)[:2]
-            linea.AddPoint(x, y)
+            linea.AddPoint(x + shift_gauss_boaga[0], y + shift_gauss_boaga[1])
 
         feat = Feature(linee.GetLayerDefn())
         feat.SetField('COMUNE', foglio['CODICE COMUNE'])
