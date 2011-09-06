@@ -8,21 +8,23 @@ from osgeo.ogr import OFTString, OFTInteger, OFTReal
 cassini_soldener = '+proj=cass +lat_0=41.650375 +lon_0=14.259775 +x_0=%f +y_0=%f +ellps=intl +units=m +no_defs'
 
 comuni_shift = {
-    'B550': ((0, 0), (12.8, 16.8)),
-    'L113': ((0, 0), (-58.8, -8.6)),
-    ('L113', '35'): ((21.5, 18.5), (-1, 1.5)),
-    ('L113', '38'): ((26, 12.5), (-1, 1.5)),
-    ('L113', '40'): ((33, 0.5), (-1, 1.5)),
-    ('L113', '41'): ((32.5, 10.7), (-1, 1.5)),
-    ('L113', '42'): ((34, 15.3), (-1, 1.5)),
-    ('L113', '43'): ((39, 22), (-1, 1.5)),
-    ('L113', '45'): ((39.2, 2.7), (-1, 1.5)),
-    ('L113', '47'): ((42.5, 17.5), (-1, 1.5)),
-    ('L113', '48'): ((39, -7), (-1, 1.5)),
+    ('E259', '49'): ((0.3, 5.3), (-1., 1.5)),
+    ('E259', '50'): ((0., 0.), (-1., 1.5)),
+    ('E259', '60'): ((1., 1.), (-1., 1.5)),
+    ('L113', '35'): ((21.5, 18.5), (-1., 1.5)),
+    ('L113', '38'): ((26., 12.5), (-1., 1.5)),
+    ('L113', '40'): ((33., 0.5), (-1., 1.5)),
+    ('L113', '41'): ((32.5, 10.7), (-1., 1.5)),
+    ('L113', '42'): ((34., 15.3), (-1., 1.5)),
+    ('L113', '43'): ((39., 22.), (-1., 1.5)),
+    ('L113', '45'): ((39.2, 2.7), (-1., 1.5)),
+    ('L113', '46'): ((44.8, 6.6), (-1., 1.5)),
+    ('L113', '47'): ((42.5, 17.5), (-1., 1.5)),
+    ('L113', '48'): ((39., -7.), (-1., 1.5)),
 }
 
 
-def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'):
+def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Shapefile', t_srs='3004'):
     
     target_srs = SpatialReference()
     try:
@@ -31,7 +33,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
         raise
         target_srs.ImportFromProj4(t_srs)
 
-    shift_cassini, shift_gauss_boaga = comuni_shift.get((foglio['CODICE COMUNE'], foglio['NUMERO FOGLIO']), ((0, 0), (0, 0)))
+    shift_cassini, shift_gauss_boaga = comuni_shift.get((foglio['CODICE COMUNE'], foglio['NUMERO FOGLIO']), ((0., 0.), (0., 0.)))
     local_cassini_soldener = cassini_soldener % (-shift_cassini[0], -shift_cassini[1])
 
     source_srs = SpatialReference()
@@ -65,7 +67,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
     ds = GetDriverByName(format_name).CreateDataSource(destination)
 
     # tipo BORDO
-    bordi = ds.CreateLayer('BORDI', target_srs, wkbPolygon)
+    bordi = ds.CreateLayer('CATASTO_BORDI', target_srs, wkbPolygon)
 
     bordi.CreateField(f_comune)
     bordi.CreateField(f_foglio)
@@ -132,9 +134,45 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
         bordi.CreateFeature(feat)
         feat.Destroy()
 
+    if point_borders:
+        # tipo BORDO_PUNTO
+        bordi = ds.CreateLayer('CATASTO_PARTICELLE', target_srs, wkbPoint)
+
+        bordi.CreateField(f_comune)
+        bordi.CreateField(f_foglio)
+        bordi.CreateField(f_tipo)
+        bordi.CreateField(f_part)
+        bordi.CreateField(f_dimensione)
+        bordi.CreateField(f_angolo)
+        bordi.CreateField(f_area)
+        bordi.CreateField(f_etichetta)
+
+        for oggetto in foglio['oggetti']['BORDO']:
+            etichetta = oggetto['CODICE IDENTIFICATIVO']
+            if oggetto['CODICE IDENTIFICATIVO'][-1] == '+':
+                etichetta = ''
+
+            feat = Feature(bordi.GetLayerDefn())
+            feat.SetField('COMUNE', foglio['CODICE COMUNE'])
+            feat.SetField('FOGLIO', foglio['CODICE FOGLIO'])
+            feat.SetField('tipo', oggetto['tipo'])
+            feat.SetField('PARTICELLA', oggetto['CODICE IDENTIFICATIVO'])
+            feat.SetField('DIMENSIONE', int(oggetto['DIMENSIONE']))
+            feat.SetField('ANGOLO', float(oggetto['ANGOLO']))
+            pos_x, pos_y = map(float, (oggetto['PUNTOINTERNOX'],oggetto['PUNTOINTERNOY']))
+            if True:
+                pos_x, pos_y = trasformation.TransformPoint(pos_x, pos_y)[:2]
+            feat.SetField('AREA', oggetto.get('AREA', -1))
+            feat.SetField('etichetta', etichetta)
+            pt = Geometry(wkbPoint)
+            pt.SetPoint_2D(0, pos_x + shift_gauss_boaga[0], pos_y + shift_gauss_boaga[1])
+            feat.SetGeometry(pt)
+            bordi.CreateFeature(feat)
+            feat.Destroy()
+
 
     # tipo TESTO
-    testi = ds.CreateLayer('TESTI', target_srs, wkbPoint)
+    testi = ds.CreateLayer('CATASTO_TESTI', target_srs, wkbPoint)
 
     testi.CreateField(f_comune)
     testi.CreateField(f_foglio)
@@ -164,7 +202,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
 
 
     # tipo SIMBOLO
-    simboli = ds.CreateLayer('SIMBOLI', target_srs, wkbPoint)
+    simboli = ds.CreateLayer('CATASTO_SIMBOLI', target_srs, wkbPoint)
 
     simboli.CreateField(f_comune)
     simboli.CreateField(f_foglio)
@@ -188,7 +226,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
 
 
     # tipo FIDUCIALE
-    fiduciali = ds.CreateLayer('FIDUCIALI', target_srs, wkbPoint)
+    fiduciali = ds.CreateLayer('CATASTO_FIDUCIALI', target_srs, wkbPoint)
 
     fiduciali.CreateField(f_comune)
     fiduciali.CreateField(f_foglio)
@@ -198,6 +236,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
     fiduciali.CreateField(f_pos_y)
     fiduciali.CreateField(f_etichetta)
 
+    print 'corrections', shift_cassini, shift_gauss_boaga
     for oggetto in foglio['oggetti']['FIDUCIALE']:
         x, y = map(float, (oggetto['POSIZIONEX'], oggetto['POSIZIONEY']))
         pos_x, pos_y = map(float, (oggetto['PUNTORAPPRESENTAZIONEX'], oggetto['PUNTORAPPRESENTAZIONEY']))
@@ -226,7 +265,7 @@ def write_foglio(foglio, destination, format_name='ESRI Shapefile', t_srs='3004'
 
 
     # tipo LINEA
-    linee = ds.CreateLayer('LINEE', target_srs, wkbLineString)
+    linee = ds.CreateLayer('CATASTO_LINEE', target_srs, wkbLineString)
 
     linee.CreateField(f_comune)
     linee.CreateField(f_foglio)
