@@ -8,9 +8,15 @@ from osgeo.ogr import OFTString, OFTInteger, OFTReal
 cassini_soldener = '+proj=cass +lat_0=41.650375 +lon_0=14.259775 +x_0=%f +y_0=%f +ellps=intl +units=m +no_defs'
 
 comuni_shift = {
+    'B550': ((0., 0.), (-1., 1.5)),
+    'E259': ((0., 0.), (-1., 1.5)),
+    'G910': ((0., 0.), (-1., 1.5)),
+    'L113': ((30., 0.), (-1., 1.5)),
     ('E259', '49'): ((0.3, 5.3), (-1., 1.5)),
     ('E259', '50'): ((0., 0.), (-1., 1.5)),
     ('E259', '60'): ((1., 1.), (-1., 1.5)),
+    ('B550', '12'): ((24., -35.), (-1., 1.5)),
+    ('B550', '13'): ((24., -35.), (-1., 1.5)),
     ('L113', '35'): ((21.5, 18.5), (-1., 1.5)),
     ('L113', '38'): ((26., 12.5), (-1., 1.5)),
     ('L113', '40'): ((33., 0.5), (-1., 1.5)),
@@ -39,7 +45,11 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
         raise
         target_srs.ImportFromProj4(t_srs)
 
-    shift_cassini, shift_gauss_boaga = comuni_shift.get((foglio['CODICE COMUNE'], foglio['NUMERO FOGLIO']), ((0., 0.), (0., 0.)))
+    shifts = ((0., 0.), (0., 0.))
+    shifts = comuni_shift.get(foglio['CODICE COMUNE'], shifts)
+    # shifts = comuni_shift.get((foglio['CODICE COMUNE'], foglio['NUMERO FOGLIO']), shifts)
+
+    shift_cassini, shift_gauss_boaga = shifts
     local_cassini_soldener = cassini_soldener % (-shift_cassini[0], -shift_cassini[1])
 
     source_srs = SpatialReference()

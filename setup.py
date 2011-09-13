@@ -27,6 +27,8 @@ setup(name='bgeo.catasto',
           # -*- Extra requirements: -*-
       ],
       entry_points="""
-      # -*- Entry points: -*-
+          [console_scripts]
+          cxf2ogr = bgeo.catasto.apps:main_cxf
+          ter2db = bgeo.catasto.apps:main_ter
       """,
       )

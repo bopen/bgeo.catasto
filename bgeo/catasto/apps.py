@@ -31,21 +31,31 @@ def main_cxf(args=argv[1:]):
 
 def main_ter(args=argv[1:]):
     from bgeo.catasto.ter import parse_censuario
+    from bgeo.catasto.db import upload_censuario
 
     parser = OptionParser()
-    parser.add_option("-d", "--destination", 
+    parser.add_option("-d", "--dsn", default='postgresql:///',
         help="destination datasource name")
-    parser.add_option("-f", "--format-name", default='ESRI Shapefile',
-        help="output file format name, see OGR docs for possible values")
     (keys, args) = parser.parse_args(args=args)
     assert len(args) == 1
 
-    foglio = parse_censuario(args[0])
-    if keys.destination is not None:
-        destination = keys.destination
-    else:
-        destination = args[0]
+    censuario = parse_censuario(args[0])
+    upload_censuario(keys.dsn, censuario)
+
+
+def main_fab(args=argv[1:]):
+    from bgeo.catasto.fab import parse_censuario
+    from bgeo.catasto.db import upload_censuario
+
+    parser = OptionParser()
+    parser.add_option("-d", "--dsn", default='postgresql:///',
+        help="destination datasource name")
+    (keys, args) = parser.parse_args(args=args)
+    assert len(args) == 1
+
+    censuario = parse_censuario(args[0])
+    upload_censuario(keys.dsn, censuario)
 
 
 if __name__ == '__main__':
-    main_cxf()
+    main_fab()
