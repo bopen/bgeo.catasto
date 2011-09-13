@@ -45,8 +45,36 @@ class Titolarita_MM(Base):
 def upload_censuario(dns, censuario):
     Base.metadata.bind = dns
 
-    soggetti_table = Soggetti.__table__
     CODICE_COMUNE =censuario['CODICE_COMUNE']
+
+    particelle_table = Particella.__table__
+
+    for IDENTIFICATIVO_IMMOBILE, terreno in censuario['TERRENI'].items():
+        print terreno
+        part = particelle_table.select().where(
+            particelle_table.c.comune==CODICE_COMUNE
+        ).where(
+            particelle_table.c.foglio=='%s_%s00' % (CODICE_COMUNE, ('000' + terreno['FOGLIO'])[-4:])
+        ).where(
+            particelle_table.c.particella==terreno['NUMERO'].lstrip('0')
+        ).execute().fetchall()
+        if len(part) > 1:
+            print 'duplicate part!'
+        elif len(part) == 1:
+            print 'update', terreno
+            part_id = part[0].id
+            particelle_table.update().where(particelle_table.c.id==part_id).values(**terreno).execute()
+        else:
+            print 'missing', terreno
+            # result = particelle_table.insert().values(**terreno).execute()
+            # part_id = result.last_inserted_ids()[0]
+
+        print part_id
+
+
+    return
+
+    soggetti_table = Soggetti.__table__
 
     for soggetto_id, soggetto in censuario['SOGGETTI'].items():
         IDENTIFICATIVO_SOGGETTO, TIPO_SOGGETTO = soggetto_id

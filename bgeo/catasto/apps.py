@@ -29,22 +29,8 @@ def main_cxf(args=argv[1:]):
         format_name=keys.format_name)
 
 
-def main_ter(args=argv[1:]):
-    from bgeo.catasto.ter import parse_censuario
-    from bgeo.catasto.db import upload_censuario
-
-    parser = OptionParser()
-    parser.add_option("-d", "--dsn", default='postgresql:///',
-        help="destination datasource name")
-    (keys, args) = parser.parse_args(args=args)
-    assert len(args) == 1
-
-    censuario = parse_censuario(args[0])
-    upload_censuario(keys.dsn, censuario)
-
-
-def main_fab(args=argv[1:]):
-    from bgeo.catasto.fab import parse_censuario
+def main_censuario(args=argv[1:]):
+    from bgeo.catasto.censuario import parse_censuario
     from bgeo.catasto.db import upload_censuario
 
     parser = OptionParser()
@@ -58,4 +44,4 @@ def main_fab(args=argv[1:]):
 
 
 if __name__ == '__main__':
-    main_fab()
+    main_censuario()
