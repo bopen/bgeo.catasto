@@ -23,7 +23,22 @@ class Particella(Base):
     REDDITO_AGRICOLO = Column(Unicode())
 
 
-class Soggetti(Base):
+class Subalterno(Base):
+    __tablename__ = 'catasto_subalterni'
+
+    id = Column(Integer, primary_key=True)
+
+    particella_id = Column(Integer, ForeignKey('catasto_particelle.id'))
+    SUBALTERNO = Column(Unicode())
+    ZONA = Column(Unicode())
+    CATEGORIA = Column(Unicode())
+    CLASSE = Column(Unicode())
+    CONSISTENZA = Column(Unicode())
+    SUPERFICIE = Column(Unicode())
+    RENDITA = Column(Unicode())
+
+
+class Soggetto(Base):
     __tablename__ = 'catasto_soggetti'
 
     id = Column(Integer, primary_key=True)
@@ -69,12 +84,45 @@ def upload_censuario(dns, censuario):
             # result = particelle_table.insert().values(**terreno).execute()
             # part_id = result.last_inserted_ids()[0]
 
-        print part_id
 
+    subalterni_table = Subalterno.__table__
+
+    for terreno, subalterni in censuario['FABBRICATI_TERRENI'].items():
+        part = particelle_table.select().where(
+            particelle_table.c.comune==CODICE_COMUNE
+        ).where(
+            particelle_table.c.foglio=='%s_%s00' % (CODICE_COMUNE, terreno[1])
+        ).where(
+            particelle_table.c.particella==terreno[2].lstrip('0')
+        ).execute().fetchall()
+        if len(part) > 1:
+            print 'duplicate part!'
+        elif len(part) == 1:
+            print 'update', terreno
+            part_id = part[0].id
+            for IDENTIFICATIVO_IMMOBILE in subalterni:
+            	subalterno = censuario['FABBRICATI'][IDENTIFICATIVO_IMMOBILE]
+            	sub = subalterni_table.select().where(
+                    subalterni_table.c.particella_id==part_id
+                ).where(
+                    subalterni_table.c.SUBALTERNO==subalterno['SUBALTERNO']
+                ).execute().fetchall()
+                if len(sub) > 1:
+                    print 'duplicate sub!'
+                elif len(sub) == 1:
+                    sub_id = sub[0].id
+                    subalterni_table.update().where(subalterni_table.c.id==sub_id).values(**subalterno).execute()
+                else:
+                    print 'insert', IDENTIFICATIVO_IMMOBILE, subalterno
+                    subalterni_table.insert().values(particella_id=part_id, **subalterno).execute()
+        else:
+            pass # print 'missing', terreno, '%s_%s00' % (CODICE_COMUNE, terreno[1]), terreno[2].lstrip('0')
+            # result = particelle_table.insert().values(**terreno).execute()
+            # part_id = result.last_inserted_ids()[0]s
 
     return
 
-    soggetti_table = Soggetti.__table__
+    soggetti_table = Soggetto.__table__
 
     for soggetto_id, soggetto in censuario['SOGGETTI'].items():
         IDENTIFICATIVO_SOGGETTO, TIPO_SOGGETTO = soggetto_id

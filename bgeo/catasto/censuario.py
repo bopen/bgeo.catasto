@@ -16,6 +16,7 @@ def parse_censuario(basepath):
     censuario['IDENTIFICATIVO RICHIESTA'] = basename[-4:]
 
     censuario['FABBRICATI'] = {}
+    censuario['FABBRICATI_TERRENI'] = {}
 
     try:
         fab = open(basepath + '.FAB')
@@ -31,18 +32,25 @@ def parse_censuario(basepath):
         assert oggetto['TIPO_RECORD'] in ['1', '2', '3', '4', '5']
         if oggetto['TIPO_RECORD'] == '1':
             record_len = 40
-            oggetto['ZONE'], oggetto['CATEGORIA'], oggetto['CLASSE'], oggetto['CONSISTENZA'], oggetto['SUPERFICIE'] = fields[6:11]
+            oggetto['ZONA'], oggetto['CATEGORIA'], oggetto['CLASSE'], oggetto['CONSISTENZA'], oggetto['SUPERFICIE'] = fields[6:11]
             oggetto['RENDITA'] = fields[12]
         elif oggetto['TIPO_RECORD'] == '2':
             record_len = 13
             oggetto['SEZIONE URBANA'], oggetto['FOGLIO'], oggetto['NUMERO'], oggetto['DENOMINATORE'], oggetto['SUBALTERNO'], oggetto['EDIFICIALITA'] = fields[6:12]
             fields = fields[:13]
+            terreno_id = (oggetto['SEZIONE URBANA'], oggetto['FOGLIO'], oggetto['NUMERO'])
+            if terreno_id not in censuario['FABBRICATI_TERRENI']:
+            	censuario['FABBRICATI_TERRENI'][terreno_id] = []
+            terreno = censuario['FABBRICATI_TERRENI'][terreno_id]
+            terreno.append(oggetto['IDENTIFICATIVO_IMMOBILE'])
+            print terreno
         else:
             continue
 
         assert len(fields) == record_len, 'Anomalous record schema line: %d, type: %r, len: %d, record: %r' % (i + 1, oggetto['TIPO_RECORD'], len(fields),  record)
 
-        censuario['FABBRICATI'][oggetto['IDENTIFICATIVO_IMMOBILE']] = {}
+        if oggetto['IDENTIFICATIVO_IMMOBILE'] not in censuario['FABBRICATI']:
+        	censuario['FABBRICATI'][oggetto['IDENTIFICATIVO_IMMOBILE']] = {}
         censuario['FABBRICATI'][oggetto['IDENTIFICATIVO_IMMOBILE']].update(oggetto)
 
     censuario['TERRENI'] = {}
