@@ -1,4 +1,6 @@
 
+from math import sin, cos, pi, radians
+
 from osgeo.osr import CoordinateTransformation, SpatialReference
 from osgeo.ogr import wkbPoint, wkbPolygon, wkbLinearRing, wkbLineString
 from osgeo.ogr import GetDriverByName, Feature, Geometry, FieldDefn
@@ -38,6 +40,20 @@ comuni_shift = {
     ('L113', '54'): ((61., 0.), (-1., 1.5)),
     ('G910', '02'): ((0.249, 0.392), (-1., 1.5)),
 }
+
+
+def rototranslate(p, p0, rotationmatrix, delta):
+    x1 = rotationmatrix[0][0] * (p[0] - p0[0]) + rotationmatrix[0][1] * (p[1] - p0[1]) + delta[0]
+    y1 = rotationmatrix[1][0] * (p[0] - p0[0]) + rotationmatrix[1][1] * (p[1] - p0[1]) + delta[1]
+    return x1 + p0[0], y1 + p0[1]
+
+def make_rotationmatrix(alpha):
+    rotationmatrix =  [[0.,0.], [0.,0.]]
+    rotationmatrix[0][0] = cos(radians(alpha))
+    rotationmatrix[0][1] = -sin(radians(alpha))
+    rotationmatrix[1][0] = sin(radians(alpha))
+    rotationmatrix[1][1] = cos(radians(alpha))
+    return rotationmatrix
 
 
 def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Shapefile', t_srs='3004'):
