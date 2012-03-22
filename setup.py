@@ -8,15 +8,17 @@ setup(name='bgeo.catasto',
       description="Italian land registry utilities",
       long_description=open("README.txt").read() + "\n" +
                        open(os.path.join("docs", "HISTORY.txt")).read(),
-      # Get more strings from
-      # http://pypi.python.org/pypi?:action=list_classifiers
       classifiers=[
         "Programming Language :: Python",
+        "Development Status :: 3 - Alpha",
+        "Environment :: Console",
+        "License :: OSI Approved :: GNU General Public License (GPL)",
+        "Topic :: Scientific/Engineering :: GIS",
         ],
       keywords='',
-      author='',
+      author='Alessandro Amici',
       author_email='',
-      url='http://svn.plone.org/svn/collective/',
+      url='http://github.com/alexamici/bgeo.catasto',
       license='GPL',
       packages=find_packages(exclude=['ez_setup']),
       namespace_packages=['bgeo'],
@@ -24,7 +26,7 @@ setup(name='bgeo.catasto',
       zip_safe=False,
       install_requires=[
           'setuptools',
-          # -*- Extra requirements: -*-
+          'GDAL',
       ],
       entry_points="""
           [console_scripts]
