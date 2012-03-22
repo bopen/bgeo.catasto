@@ -1,6 +1,9 @@
 Introduction
 ============
 
+bgeo.catasto is a library for parsing and translating
+official land registry data publihsed by the "Agenzia
+del Territorio" into more standard GIS formats.
 
-
-This product may contain traces of nuts.
+It currently support CXF/SUP map files and FAB/TER
+censo data.
