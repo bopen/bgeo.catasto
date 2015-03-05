@@ -60,25 +60,25 @@ class Titolarita_MM(Base):
 def upload_censuario(dns, censuario):
     Base.metadata.bind = dns
 
-    CODICE_COMUNE =censuario['CODICE_COMUNE']
+    CODICE_COMUNE = censuario['CODICE_COMUNE']
 
     particelle_table = Particella.__table__
 
     for IDENTIFICATIVO_IMMOBILE, terreno in censuario['TERRENI'].items():
         print terreno
         part = particelle_table.select().where(
-            particelle_table.c.comune==CODICE_COMUNE
+            particelle_table.c.comune == CODICE_COMUNE
         ).where(
-            particelle_table.c.foglio=='%s_%s00' % (CODICE_COMUNE, ('000' + terreno['FOGLIO'])[-4:])
+            particelle_table.c.foglio == '%s_%s00' % (CODICE_COMUNE, ('000' + terreno['FOGLIO'])[-4:])
         ).where(
-            particelle_table.c.particella==terreno['NUMERO'].lstrip('0')
+            particelle_table.c.particella == terreno['NUMERO'].lstrip('0')
         ).execute().fetchall()
         if len(part) > 1:
             print 'duplicate part!'
         elif len(part) == 1:
             print 'update', terreno
             part_id = part[0].id
-            particelle_table.update().where(particelle_table.c.id==part_id).values(**terreno).execute()
+            particelle_table.update().where(particelle_table.c.id == part_id).values(**terreno).execute()
         else:
             print 'missing', terreno
             # result = particelle_table.insert().values(**terreno).execute()
@@ -89,11 +89,11 @@ def upload_censuario(dns, censuario):
 
     for terreno, subalterni in censuario['FABBRICATI_TERRENI'].items():
         part = particelle_table.select().where(
-            particelle_table.c.comune==CODICE_COMUNE
+            particelle_table.c.comune == CODICE_COMUNE
         ).where(
-            particelle_table.c.foglio=='%s_%s00' % (CODICE_COMUNE, terreno[1])
+            particelle_table.c.foglio == '%s_%s00' % (CODICE_COMUNE, terreno[1])
         ).where(
-            particelle_table.c.particella==terreno[2].lstrip('0')
+            particelle_table.c.particella == terreno[2].lstrip('0')
         ).execute().fetchall()
         if len(part) > 1:
             print 'duplicate part!'
@@ -103,15 +103,15 @@ def upload_censuario(dns, censuario):
             for IDENTIFICATIVO_IMMOBILE in subalterni:
             	subalterno = censuario['FABBRICATI'][IDENTIFICATIVO_IMMOBILE]
             	sub = subalterni_table.select().where(
-                    subalterni_table.c.particella_id==part_id
+                    subalterni_table.c.particella_id == part_id
                 ).where(
-                    subalterni_table.c.SUBALTERNO==subalterno['SUBALTERNO']
+                    subalterni_table.c.SUBALTERNO == subalterno['SUBALTERNO']
                 ).execute().fetchall()
                 if len(sub) > 1:
                     print 'duplicate sub!'
                 elif len(sub) == 1:
                     sub_id = sub[0].id
-                    subalterni_table.update().where(subalterni_table.c.id==sub_id).values(**subalterno).execute()
+                    subalterni_table.update().where(subalterni_table.c.id == sub_id).values(**subalterno).execute()
                 else:
                     print 'insert', IDENTIFICATIVO_IMMOBILE, subalterno
                     subalterni_table.insert().values(particella_id=part_id, **subalterno).execute()
@@ -142,7 +142,7 @@ def upload_censuario(dns, censuario):
         elif len(sogg) == 1:
             print 'update', sogg[0].IDENTIFICATIVO_SOGGETTO, IDENTIFICATIVO_SOGGETTO
             sogg_id = sogg[0].id
-            soggetti_table.update().where(soggetti_table.c.id==sogg_id).values(**soggetto).execute()
+            soggetti_table.update().where(soggetti_table.c.id == sogg_id).values(**soggetto).execute()
         else:
             print 'insert', IDENTIFICATIVO_SOGGETTO
             result = soggetti_table.insert().values(**soggetto).execute()
@@ -150,7 +150,7 @@ def upload_censuario(dns, censuario):
 
         print sogg_id
 
-        particella_table = Particella.__table__
+        # particella_table = Particella.__table__
 
         # for tit in censuario['TITOLARITA']:
         #     T_IDENTIFICATIVO_SOGGETTO, T_TIPO_SOGGETTO, IDENTIFICATIVO_IMMOBILE, TIPO_IMMOBILE = tit

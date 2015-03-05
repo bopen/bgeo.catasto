@@ -1,5 +1,5 @@
 
-from math import sin, cos, pi, radians
+from math import sin, cos, radians
 
 from osgeo.osr import CoordinateTransformation, SpatialReference
 from osgeo.ogr import wkbPoint, wkbPolygon, wkbLinearRing, wkbLineString
@@ -47,8 +47,9 @@ def rototranslate(p, p0, rotationmatrix, delta):
     y1 = rotationmatrix[1][0] * (p[0] - p0[0]) + rotationmatrix[1][1] * (p[1] - p0[1]) + delta[1]
     return x1 + p0[0], y1 + p0[1]
 
+
 def make_rotationmatrix(alpha):
-    rotationmatrix =  [[0.,0.], [0.,0.]]
+    rotationmatrix = [[0., 0.], [0., 0.]]
     rotationmatrix[0][0] = cos(radians(alpha))
     rotationmatrix[0][1] = -sin(radians(alpha))
     rotationmatrix[1][0] = sin(radians(alpha))
@@ -57,7 +58,7 @@ def make_rotationmatrix(alpha):
 
 
 def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Shapefile', t_srs='3004'):
-    
+
     target_srs = SpatialReference()
     try:
         target_srs.ImportFromEPSG(int(t_srs))
@@ -156,7 +157,7 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
         feat.SetField('DIMENSIONE', int(oggetto['DIMENSIONE']))
         feat.SetField('ANGOLO', float(oggetto['ANGOLO']))
         pos_x, pos_y = map(float, (oggetto['POSIZIONEX'], oggetto['POSIZIONEY']))
-        interno_x, interno_y = map(float, (oggetto['PUNTOINTERNOX'],oggetto['PUNTOINTERNOY']))
+        interno_x, interno_y = map(float, (oggetto['PUNTOINTERNOX'], oggetto['PUNTOINTERNOY']))
         if True:
             pos_x, pos_y = trasformation.TransformPoint(pos_x, pos_y)[:2]
             interno_x, interno_y = trasformation.TransformPoint(interno_x, interno_y)[:2]
@@ -195,7 +196,7 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
             feat.SetField('PARTICELLA', oggetto['CODICE IDENTIFICATIVO'])
             feat.SetField('DIMENSIONE', int(oggetto['DIMENSIONE']))
             feat.SetField('ANGOLO', float(oggetto['ANGOLO']))
-            pos_x, pos_y = map(float, (oggetto['PUNTOINTERNOX'],oggetto['PUNTOINTERNOY']))
+            pos_x, pos_y = map(float, (oggetto['PUNTOINTERNOX'], oggetto['PUNTOINTERNOY']))
             if True:
                 pos_x, pos_y = trasformation.TransformPoint(pos_x, pos_y)[:2]
             feat.SetField('AREA', oggetto.get('AREA', -1))
@@ -205,7 +206,6 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
             feat.SetGeometry(pt)
             bordi.CreateFeature(feat)
             feat.Destroy()
-
 
     # tipo TESTO
     testi = ds.CreateLayer('CATASTO_TESTI', target_srs, wkbPoint)
@@ -223,7 +223,7 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
             x, y = trasformation.TransformPoint(x, y)[:2]
         # FIXME: many texts are useless, prun them from etichetta
         etichetta = oggetto['TESTO']
-        
+
         feat = Feature(testi.GetLayerDefn())
         feat.SetField('COMUNE', foglio['CODICE COMUNE'])
         feat.SetField('FOGLIO', foglio['CODICE FOGLIO'])
@@ -235,7 +235,6 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
         pt.SetPoint_2D(0, x + shift_gauss_boaga[0], y + shift_gauss_boaga[1])
         feat.SetGeometry(pt)
         testi.CreateFeature(feat)
-
 
     # tipo SIMBOLO
     simboli = ds.CreateLayer('CATASTO_SIMBOLI', target_srs, wkbPoint)
@@ -249,7 +248,7 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
         x, y = map(float, (oggetto['POSIZIONEX'], oggetto['POSIZIONEY']))
         if True:
             x, y = trasformation.TransformPoint(x, y)[:2]
-        
+
         feat = Feature(simboli.GetLayerDefn())
         feat.SetField('COMUNE', foglio['CODICE COMUNE'])
         feat.SetField('FOGLIO', foglio['CODICE FOGLIO'])
@@ -259,7 +258,6 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
         pt.SetPoint_2D(0, x + shift_gauss_boaga[0], y + shift_gauss_boaga[1])
         feat.SetGeometry(pt)
         simboli.CreateFeature(feat)
-
 
     # tipo FIDUCIALE
     fiduciali = ds.CreateLayer('CATASTO_FIDUCIALI', target_srs, wkbPoint)
@@ -279,9 +277,10 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
         if True:
             x, y = trasformation.TransformPoint(x, y)[:2]
             pos_x, pos_y = trasformation.TransformPoint(pos_x, pos_y)[:2]
-        etichetta = 'PF%02d/%s%s/%s' % (int(oggetto['NUMERO IDENTIFICATIVO']),
+        etichetta = 'PF%02d/%s%s/%s' % (
+            int(oggetto['NUMERO IDENTIFICATIVO']),
             foglio['CODICE NUMERO FOGLIO'][1:], foglio['CODICE ALLEGATO'], foglio['CODICE COMUNE'])
-        
+
         feat = Feature(fiduciali.GetLayerDefn())
         feat.SetField('COMUNE', foglio['CODICE COMUNE'])
         feat.SetField('FOGLIO', foglio['CODICE FOGLIO'])
@@ -298,7 +297,6 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
         print etichetta, oggetto['CODICE SIMBOLO'], \
             float(oggetto['POSIZIONEX']) + shift_cassini[0], float(oggetto['POSIZIONEY']) + shift_cassini[1], \
             x + shift_gauss_boaga[0], y + shift_gauss_boaga[1]
-
 
     # tipo LINEA
     linee = ds.CreateLayer('CATASTO_LINEE', target_srs, wkbLineString)
@@ -324,5 +322,5 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
         feat.SetGeometry(linea)
         linee.CreateFeature(feat)
         feat.Destroy()
-    
+
     ds.Destroy()
