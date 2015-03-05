@@ -17,4 +17,17 @@ Dependencies
 
 On Ubuntu use:
 
-  $ sudo apt-get install -y python-gdal python-sqlalchemy python-psycopg2
+    sudo apt-get install -y python-gdal python-sqlalchemy python-psycopg2
+    sudo apt-get install -y python-pytest
+
+Develop
+=======
+
+    cd bgeo.catasto
+    pip install -r requirements.txt
+    pip install -r requirements-dev.txt
+
+Tests
+=====
+
+    py.test
