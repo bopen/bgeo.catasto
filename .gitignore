@@ -4,3 +4,7 @@ docs/Makefile
 docs/make.bat
 docs/html
 docs/doctrees
+.cache/
+.coverage
+.idea/
+htmlcov
