@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.1dev (unreleased)
--------------------
+0.3 (2016-03-15)
+----------------
 
 - Initial release
