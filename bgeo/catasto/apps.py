@@ -12,12 +12,12 @@ from bgeo.catasto import ogr
               help="output file format name, see OGR docs for possible values")
 @click.option('-P', '--point-borders', is_flag=True,
               help="add a duplicate BORDI layer with point features (useful for labeling)")
-def main_cxf(source, destination, format_name, point_borders):
-    source = source.partition('.CXF')[0]
+def main_cxf(source, destination, format_name='ESRI Shapefile', point_borders=False):
+    source = str(source.partition('.CXF')[0])
     foglio = cxf.parse_foglio(source)
     if destination is None:
         destination = source
-    ogr.write_foglio(foglio, destination, point_borders=point_borders, format_name=format_name)
+    ogr.write_foglio(foglio, destination, point_borders=point_borders, format_name=str(format_name))
 
 
 # def main_censuario(args=argv[1:]):
