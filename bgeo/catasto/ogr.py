@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # python 2 support via python-future
-from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function
 from builtins import int, map, range
 
 from math import sin, cos, radians

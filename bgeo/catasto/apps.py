@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+
+# python 2 support via python-future
+from __future__ import absolute_import, division, print_function
+# NOTE: do not import 'str' from builtins
 
 import click
 
@@ -18,16 +23,3 @@ def main_cxf(source, destination, format_name='ESRI Shapefile', point_borders=Fa
     if destination is None:
         destination = source
     ogr.write_foglio(foglio, destination, point_borders=point_borders, format_name=str(format_name))
-
-
-# def main_censuario(args=argv[1:]):
-#     from bgeo.catasto.censuario import parse_censuario
-#     from bgeo.catasto.db import upload_censuario
-#
-#     parser = OptionParser()
-#     parser.add_option("-d", "--dsn", default='postgresql:///', help="destination datasource name")
-#     (keys, args) = parser.parse_args(args=args)
-#     assert len(args) == 1
-#
-#     censuario = parse_censuario(args[0])
-#     upload_censuario(keys.dsn, censuario)

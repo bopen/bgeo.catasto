@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 # python 2 support via python-future
-from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import dict, int, next, open, range
+from __future__ import absolute_import, division, print_function
+from builtins import dict, int, next, range
+# NOTE: do not import 'open' from builtins
 
 from os.path import basename as path_basename
 
