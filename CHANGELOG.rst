@@ -2,7 +2,7 @@
 0.3.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Updated the README.
 
 
 0.3.0 (2016-03-15)
