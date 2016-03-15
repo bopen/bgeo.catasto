@@ -1,5 +1,4 @@
-wheel
-GDAL
+click
+GDAL==1.11.2
 SQLAlchemy
 psycopg2
-setuptools

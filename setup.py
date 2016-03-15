@@ -25,6 +25,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'setuptools',
+        'click',
         'GDAL',
         'SQLAlchemy',
     ],
