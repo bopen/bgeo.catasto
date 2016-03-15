@@ -6,7 +6,7 @@ setup(
     name='bgeo.catasto',
     version=version,
     description="Italian land registry utilities",
-    long_description=open("README.txt").read(),
+    long_description=open("README.rst").read(),
     classifiers=[
         "Programming Language :: Python",
         "Development Status :: 3 - Alpha",
