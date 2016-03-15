@@ -1,0 +1,4 @@
+include *.qml
+include *.txt
+recursive-include bgeo *.txt
+recursive-include docs *.txt
