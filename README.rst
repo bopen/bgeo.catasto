@@ -1,6 +1,7 @@
 bgeo.catasto is a library for parsing and translating the proprietary data formats of
 official Italian land registry data as published by the "Agenzia del Territorio"
-into more standard GIS formats. It currently support CXF/SUP map files.
+into more standard GIS formats, like ESRI shapefiles.
+It currently support CXF/SUP map files.
 
 Installation
 ============
@@ -9,13 +10,26 @@ Dependencies:
 
 - GDAL/OGR
 
-To install dependencies on Ubuntu use::
+Install dependencies on Ubuntu::
 
-    sudo apt-get install -y libgdal-dev
+    $ sudo apt-get install -y libgdal-dev
 
-To install the package from the Python Package Index::
+Install the latest version from the Python Package Index::
 
-    pip install bgeo.catasto
+    $ pip install bgeo.catasto
+
+Translate the K550_000500.CXF/.SUP files to shapefiles::
+
+    $ ls
+    K550_000500.CXF	K550_000500.SUP
+    $ cxf2ogr K550_000500.CXF
+    [...]
+    $ ls K550_000500
+    K550_000500_BORDI.dbf		K550_000500_FIDUCIALI.prj	K550_000500_LINEE.shp		K550_000500_SIMBOLI.shx
+    K550_000500_BORDI.prj		K550_000500_FIDUCIALI.shp	K550_000500_LINEE.shx		K550_000500_TESTI.dbf
+    K550_000500_BORDI.shp		K550_000500_FIDUCIALI.shx	K550_000500_SIMBOLI.dbf		K550_000500_TESTI.prj
+    K550_000500_BORDI.shx		K550_000500_LINEE.dbf		K550_000500_SIMBOLI.prj		K550_000500_TESTI.shp
+    K550_000500_FIDUCIALI.dbf	K550_000500_LINEE.prj		K550_000500_SIMBOLI.shp		K550_000500_TESTI.shx
 
 Development
 ===========
