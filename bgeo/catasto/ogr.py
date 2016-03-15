@@ -78,6 +78,8 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
 
     trasformation = CoordinateTransformation(source_srs, target_srs)
 
+    codice_foglio = foglio['CODICE FOGLIO']
+
     f_comune = FieldDefn('COMUNE', OFTString)
     f_comune.SetWidth(4)
     f_foglio = FieldDefn('FOGLIO', OFTString)
@@ -104,7 +106,7 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
     ds = GetDriverByName(format_name).CreateDataSource(destination)
 
     # tipo BORDO
-    bordi = ds.CreateLayer('CATASTO_BORDI', target_srs, wkbPolygon)
+    bordi = ds.CreateLayer('%s_BORDI' % codice_foglio, target_srs, wkbPolygon)
 
     bordi.CreateField(f_comune)
     bordi.CreateField(f_foglio)
@@ -173,7 +175,7 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
 
     if point_borders:
         # tipo BORDO_PUNTO
-        bordi = ds.CreateLayer('CATASTO_PARTICELLE', target_srs, wkbPoint)
+        bordi = ds.CreateLayer('%s_PARTICELLE' % codice_foglio, target_srs, wkbPoint)
 
         bordi.CreateField(f_comune)
         bordi.CreateField(f_foglio)
@@ -208,7 +210,7 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
             feat.Destroy()
 
     # tipo TESTO
-    testi = ds.CreateLayer('CATASTO_TESTI', target_srs, wkbPoint)
+    testi = ds.CreateLayer('%s_TESTI' % codice_foglio, target_srs, wkbPoint)
 
     testi.CreateField(f_comune)
     testi.CreateField(f_foglio)
@@ -237,7 +239,7 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
         testi.CreateFeature(feat)
 
     # tipo SIMBOLO
-    simboli = ds.CreateLayer('CATASTO_SIMBOLI', target_srs, wkbPoint)
+    simboli = ds.CreateLayer('%s_SIMBOLI' % codice_foglio, target_srs, wkbPoint)
 
     simboli.CreateField(f_comune)
     simboli.CreateField(f_foglio)
@@ -260,7 +262,7 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
         simboli.CreateFeature(feat)
 
     # tipo FIDUCIALE
-    fiduciali = ds.CreateLayer('CATASTO_FIDUCIALI', target_srs, wkbPoint)
+    fiduciali = ds.CreateLayer('%s_FIDUCIALI' % codice_foglio, target_srs, wkbPoint)
 
     fiduciali.CreateField(f_comune)
     fiduciali.CreateField(f_foglio)
@@ -299,7 +301,7 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
             x + shift_gauss_boaga[0], y + shift_gauss_boaga[1]
 
     # tipo LINEA
-    linee = ds.CreateLayer('CATASTO_LINEE', target_srs, wkbLineString)
+    linee = ds.CreateLayer('%s_LINEE' % codice_foglio, target_srs, wkbLineString)
 
     linee.CreateField(f_comune)
     linee.CreateField(f_foglio)
