@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+
+# python 2 support via python-future
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import dict, int, next, open, range
 
 from os.path import basename as path_basename
 
@@ -5,13 +10,13 @@ from os.path import basename as path_basename
 def tabisole(cxf, oggetto):
     oggetto['TABISOLE'] = []
     for isola in range(int(oggetto['NUMEROISOLE'])):
-        oggetto['TABISOLE'].append(cxf.next().strip())
+        oggetto['TABISOLE'].append(next(cxf).strip())
 
 
 def vertici(cxf, oggetto):
     oggetto['VERTICI'] = []
     for vertice in range(int(oggetto['NUMEROVERTICI'])):
-        oggetto['VERTICI'].append((cxf.next().strip(), cxf.next().strip()))
+        oggetto['VERTICI'].append((next(cxf).strip(), next(cxf).strip()))
 
 
 def tipo(cxf, oggetto):
@@ -72,13 +77,13 @@ def parse_foglio(basepath):
     # parse CXF
     foglio['header'] = {}
     header = foglio['header']
-    header['MAPPA'] = cxf.next().strip()
+    header['MAPPA'] = next(cxf).strip()
     assert header['MAPPA'] in ['MAPPA', 'MAPPA FONDIARIO', 'QUADRO D\'UNIONE']
 
-    header['NOME MAPPA'] = cxf.next().strip()
+    header['NOME MAPPA'] = next(cxf).strip()
     assert header['NOME MAPPA'] == basename
 
-    header['SCALA ORIGINARIA'] = cxf.next().strip()
+    header['SCALA ORIGINARIA'] = next(cxf).strip()
 
     foglio['oggetti'] = dict((object_name, []) for object_name in oggetti_cartografici)
 
@@ -89,7 +94,7 @@ def parse_foglio(basepath):
         oggetto = {}
         nomi_record, parse_functions = oggetti_cartografici[line]
         for nome_record in nomi_record:
-            oggetto[nome_record] = cxf.next().strip()
+            oggetto[nome_record] = next(cxf).strip()
 
         for parse_function in parse_functions:
             parse_function(cxf, oggetto)
@@ -101,7 +106,7 @@ def parse_foglio(basepath):
             break
 
     try:
-        garbage = cxf.next()
+        garbage = next(cxf)
     except StopIteration:
         garbage = None
     assert garbage is None, 'Garbage after CXF EOF %r' % garbage
@@ -114,7 +119,7 @@ def parse_foglio(basepath):
         assert key == key_name
         check = int(value)
         oggetti = sum(1 for b in foglio['oggetti']['BORDO'] if b['tipo'] == tipo)
-        print key, value
+        print(key, value)
         assert oggetti == check
 
     check(sup, 'N.FABBRIC', 'FABBRICATO')
@@ -136,7 +141,7 @@ def parse_foglio(basepath):
     assert key == 'PARTIC', (key, value)
     check = int(value)
     area = sum(int(a) for a in areas.values())
-    print key, value
+    print(key, value)
     assert check * 0.95 < area < check * 1.05, (area, check)
 
     for i in range(6):

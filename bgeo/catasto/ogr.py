@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+
+# python 2 support via python-future
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import int, map, range
 
 from math import sin, cos, radians
 
@@ -123,7 +128,7 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
 
     for oggetto in foglio['oggetti']['BORDO']:
         poly = Geometry(wkbPolygon)
-        tabisole = map(int, oggetto['TABISOLE'])
+        tabisole = list(map(int, oggetto['TABISOLE']))
 
         # contorno esterno
         vertici_contorno = int(oggetto['NUMEROVERTICI']) - sum(tabisole)
@@ -272,7 +277,7 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
     fiduciali.CreateField(f_pos_y)
     fiduciali.CreateField(f_etichetta)
 
-    print 'corrections', shift_cassini, shift_gauss_boaga
+    print('corrections', shift_cassini, shift_gauss_boaga)
     for oggetto in foglio['oggetti']['FIDUCIALE']:
         x, y = map(float, (oggetto['POSIZIONEX'], oggetto['POSIZIONEY']))
         pos_x, pos_y = map(float, (oggetto['PUNTORAPPRESENTAZIONEX'], oggetto['PUNTORAPPRESENTAZIONEY']))
@@ -296,9 +301,9 @@ def write_foglio(foglio, destination, point_borders=False, format_name='ESRI Sha
         feat.SetGeometry(pt)
         fiduciali.CreateFeature(feat)
 
-        print etichetta, oggetto['CODICE SIMBOLO'], \
-            float(oggetto['POSIZIONEX']) + shift_cassini[0], float(oggetto['POSIZIONEY']) + shift_cassini[1], \
-            x + shift_gauss_boaga[0], y + shift_gauss_boaga[1]
+        print(etichetta, oggetto['CODICE SIMBOLO'],
+            float(oggetto['POSIZIONEX']) + shift_cassini[0], float(oggetto['POSIZIONEY']) + shift_cassini[1],
+            x + shift_gauss_boaga[0], y + shift_gauss_boaga[1])
 
     # tipo LINEA
     linee = ds.CreateLayer('%s_LINEE' % codice_foglio, target_srs, wkbLineString)
